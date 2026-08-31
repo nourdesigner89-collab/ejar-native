@@ -1,0 +1,19 @@
+{
+  "appId": "com.ejar.app",
+  "appName": "اجار",
+  "webDir": "www",
+  "backgroundColor": "#0d0f14",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#0d0f14",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon",
+      "iconColor": "#d4af37"
+    }
+  }
+}
