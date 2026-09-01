@@ -1,0 +1,2696 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>اجار</title>
+<meta name="description" content="تطبيق اجار لإدارة تأجير الشاليهات والمزارع والسيارات والشقق، مع تقويم حجوزات وإدارة إيرادات ومصاريف.">
+<meta name="theme-color" content="#14171e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&family=Tajawal:wght@400;500;700;900&family=Aref+Ruqaa:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12151c;
+    --surface:#1b202b;
+    --surface-2:#242a37;
+    --surface-3:#2c3342;
+    --line:#333c4d;
+    --cream:#f4f0e6;
+    --cream-dim:#c9c3b3;
+    --gold:#d4af37;
+    --gold-deep:#b8862f;
+    --gold-soft:#e8cd7a;
+    --green:#2fa370;
+    --red:#d1544a;
+    --orange:#e0912f;
+    --blue:#3f7cb0;
+    --radius:18px;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  html[data-theme="light"]{
+    --ink:#f7f4ee;
+    --surface:#ffffff;
+    --surface-2:#f0ede4;
+    --surface-3:#e6e2d6;
+    --line:#ddd7c8;
+    --cream:#0e0c08;
+    --cream-dim:#454031;
+    --gold:#b8862f;
+    --gold-deep:#96691f;
+    --gold-soft:#8a6620;
+    --green:#1f8a5c;
+    --red:#c23f36;
+    --orange:#c47418;
+    --blue:#2f5f8f;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Tajawal',sans-serif;
+    background:var(--ink);
+    color:var(--cream);
+    min-height:100vh;
+    min-height:100dvh;
+    transition:background .2s ease, color .2s ease;
+  }
+  h1,h2,h3,h4{font-family:'Cairo',sans-serif; margin:0;}
+  .brand-font{font-family:'Aref Ruqaa', serif;}
+
+  /* ---------- App shell (fills the real device screen — no decorative phone frame) ---------- */
+  .phone{
+    width:100%;
+    height:100vh;
+    height:100dvh;
+    background:var(--ink);
+    overflow:hidden;
+    position:relative;
+    display:flex; flex-direction:column;
+  }
+
+  .appbar{
+    padding:calc(18px + env(safe-area-inset-top)) 18px 12px;
+    display:flex; align-items:center; gap:12px;
+    background:linear-gradient(180deg, #171b24, rgba(23,27,36,0));
+    flex-shrink:0;
+  }
+  .appbar h2{font-size:19px; color:var(--cream); flex:1;}
+  .appbar .sub{font-size:12px; color:var(--cream-dim); font-weight:500;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:12px; background:var(--surface-2);
+    display:flex;align-items:center;justify-content:center; border:1px solid var(--line);
+    flex-shrink:0; cursor:pointer;
+  }
+  .icon-btn:active{background:var(--surface-3);}
+  .icon-btn svg{width:19px;height:19px;}
+
+  .screen{
+    flex:1; overflow-y:auto; overflow-x:hidden;
+    padding: 4px 18px 100px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .screen::-webkit-scrollbar{display:none;}
+
+  /* ---------- Bottom nav ---------- */
+  .bottomnav{
+    position:absolute; bottom:0; left:0; right:0;
+    display:flex; background:rgba(23,27,36,.92); backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);
+    padding:10px 6px calc(14px + var(--safe-b));
+    z-index:500;
+  }
+  .navitem{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    color:var(--cream-dim); font-size:10.5px; font-weight:700; cursor:pointer;
+  }
+  .navitem svg{width:21px;height:21px; opacity:.75;}
+  .navitem.active{color:var(--gold-soft);}
+  .navitem.active svg{opacity:1;}
+
+  /* ---------- Home ---------- */
+  .hero{
+    padding:22px 2px 24px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px;
+  }
+  .hero .wordmark{
+    font-family:'Aref Ruqaa',serif; font-size:46px; line-height:1.3; letter-spacing:1px;
+    background:linear-gradient(160deg,#f3dfa0,#d4af37 55%,#b8862f);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    padding-bottom:6px;
+  }
+  .hero .tag{font-size:12.5px; color:var(--cream-dim); font-weight:600; letter-spacing:.3px;}
+
+  .cat-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:6px;}
+  .cat-card{
+    background:linear-gradient(160deg,var(--surface-2),var(--surface));
+    border:1px solid var(--line); border-radius:20px; padding:18px 14px;
+    display:flex; flex-direction:column; gap:14px; cursor:pointer;
+    position:relative; overflow:hidden; min-height:132px;
+    transition:transform .15s ease;
+  }
+  .cat-card:active{transform:scale(.97);}
+  .cat-card .glow{
+    position:absolute; inset:-40% -40% auto auto; width:140px;height:140px;
+    background:radial-gradient(circle, rgba(212,175,55,.16), transparent 70%);
+  }
+  .cat-card .icon-wrap{
+    width:50px;height:50px;border-radius:14px;
+    background:linear-gradient(145deg,#3a3222,#211d14);
+    border:1px solid #4a3f24;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cat-card .icon-wrap svg{width:27px;height:27px;}
+  .cat-card .name{font-family:'Cairo'; font-weight:700; font-size:15.5px;}
+  .cat-card .count{font-size:11.5px; color:var(--cream-dim);}
+
+  .section-title{font-family:'Cairo'; font-weight:700; font-size:14.5px; color:var(--cream); margin:22px 0 10px;}
+
+  .quick-row{display:flex; gap:10px;}
+  .quick-btn{
+    flex:1; background:var(--surface-2); border:1px solid var(--line); border-radius:16px;
+    padding:12px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;
+  }
+  .quick-btn svg{width:20px;height:20px;}
+  .quick-btn span{font-size:11px; font-weight:700;}
+
+  /* ---------- Search bar ---------- */
+  .search-bar{
+    display:flex; align-items:center; gap:8px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin:8px 0 14px;
+  }
+  .search-bar svg{width:17px;height:17px; opacity:.6; flex-shrink:0;}
+  .search-bar input{
+    background:none;border:none;outline:none;color:var(--cream); font-family:'Tajawal'; font-size:14px; flex:1;
+  }
+  .filter-chips{display:flex; gap:8px; margin-bottom:14px; overflow-x:auto;}
+  .chip{
+    padding:6px 14px; border-radius:100px; background:var(--surface-2); border:1px solid var(--line);
+    font-size:12px; font-weight:700; color:var(--cream-dim); white-space:nowrap; cursor:pointer;
+  }
+  .chip.active{background:var(--gold); color:#20180a; border-color:var(--gold);}
+
+  /* ---------- Unit list ---------- */
+  .unit-card{
+    display:flex; align-items:center; gap:12px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:16px; padding:12px; margin-bottom:10px; cursor:pointer;
+  }
+  .unit-card .thumb{
+    width:56px;height:56px;border-radius:12px; flex-shrink:0;
+    background:linear-gradient(145deg,#3a3222,#211d14); border:1px solid #4a3f24;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .unit-card .thumb svg{width:28px;height:28px;}
+  .unit-card .info{flex:1; min-width:0;}
+  .unit-card .info .n{font-family:'Cairo'; font-weight:700; font-size:14.5px;}
+  .unit-card .info .m{font-size:11.5px; color:var(--cream-dim); margin-top:3px;}
+  .status-dot{width:10px;height:10px;border-radius:50%; flex-shrink:0;}
+  .card-actions{display:flex; gap:6px; flex-shrink:0; margin-inline-start:4px;}
+  .mini-icon-btn{width:30px;height:30px;border-radius:9px; background:var(--surface-3); border:1px solid var(--line); display:flex;align-items:center;justify-content:center; cursor:pointer;}
+  .mini-icon-btn svg{width:14px;height:14px; opacity:.85;}
+  .mini-icon-btn.danger{background:rgba(209,84,74,.15); border-color:rgba(209,84,74,.35); color:#ec8179;}
+
+  /* ---------- Calendar ---------- */
+  .month-nav{display:flex; align-items:center; justify-content:space-between; margin:6px 0 14px;}
+  .month-nav .mtitle{font-family:'Cairo'; font-weight:800; font-size:20px; letter-spacing:.5px;}
+  .month-nav .marrow{
+    width:34px;height:34px;border-radius:10px; background:var(--surface-2); border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center; cursor:pointer;
+  }
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px;}
+  .legend .li{display:flex; align-items:center; gap:5px; font-size:11px; color:var(--cream-dim);}
+  .legend .dot{width:9px;height:9px;border-radius:50%;}
+
+  .weekdays{display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:6px;}
+  .weekdays span{text-align:center; font-size:10.5px; color:var(--cream-dim); font-weight:700;}
+  .daysgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+  .day{
+    aspect-ratio:1/1; border-radius:11px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; cursor:pointer; position:relative; color:#0f1116;
+  }
+  .day.empty-cell{visibility:hidden;}
+  .day.avail{background:linear-gradient(160deg,#3bbd88,var(--green)); color:#08251a;}
+  .day.rented{background:linear-gradient(160deg,#e4675d,var(--red)); color:#2a0806;}
+  .day.prelim{background:linear-gradient(160deg,#f0a54e,var(--orange)); color:#301a02;}
+  .day.settled{background:linear-gradient(160deg,#659fcc,var(--blue)); color:#071626;}
+  .day.today{box-shadow:0 0 0 2px var(--gold-soft) inset;}
+  .day .tag{position:absolute; bottom:3px; font-size:7px; font-weight:800; opacity:.75;}
+  .day .paid-badge{
+    position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%;
+    background:#0f1116; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.25);
+  }
+  .day .paid-badge svg{width:9px; height:9px; stroke:#3bd67a; stroke-width:3;}
+
+  .revenue-strip{
+    display:flex; gap:10px; margin-top:18px;
+  }
+  .stat-card{
+    flex:1; background:var(--surface-2); border:1px solid var(--line); border-radius:16px; padding:12px;
+  }
+  .stat-card .lbl{font-size:10.5px; color:var(--cream-dim); font-weight:700;}
+  .stat-card .val{font-family:'Cairo'; font-weight:800; font-size:16px; margin-top:4px;}
+  .stat-card.green .val{color:var(--green);}
+  .stat-card.red .val{color:#ec8179;}
+  .stat-card.gold .val{color:var(--gold-soft);}
+
+  .big-btn{
+    width:100%; padding:15px; border-radius:16px; border:none; cursor:pointer;
+    font-family:'Cairo'; font-weight:800; font-size:14.5px; margin-top:16px;
+    background:linear-gradient(145deg,var(--gold-soft),var(--gold-deep)); color:#241a06;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .big-btn:active{filter:brightness(.94);}
+  .big-btn.ghost{background:var(--surface-2); color:var(--cream); border:1px solid var(--line);}
+  .big-btn.danger{background:linear-gradient(145deg,#e4675d,var(--red)); color:#2a0806;}
+  .big-btn.blueish{background:linear-gradient(145deg,#659fcc,var(--blue)); color:#071626;}
+  .big-btn svg{width:17px;height:17px;}
+
+  /* ---------- Sheets / modals ---------- */
+  .scrim{
+    position:absolute; inset:0; background:rgba(4,5,8,.62); z-index:900;
+    display:flex; align-items:flex-end; justify-content:center;
+    animation:fadeIn .15s ease;
+  }
+  @keyframes fadeIn{from{opacity:0} to{opacity:1}}
+
+  .drawer-scrim{
+    position:absolute; inset:0; background:rgba(4,5,8,.55); z-index:950;
+    animation:fadeIn .18s ease;
+  }
+  .drawer-panel{
+    position:absolute; top:0; bottom:0; left:0;
+    width:84%; max-width:340px;
+    background:var(--surface);
+    border-left:1px solid var(--line);
+    box-shadow: 12px 0 40px rgba(0,0,0,.5);
+    display:flex; flex-direction:column;
+    animation: slideInLeft .22s cubic-bezier(.2,.9,.25,1);
+  }
+  @keyframes slideInLeft{from{transform:translateX(-100%)} to{transform:translateX(0)}}
+  .drawer-head{
+    display:flex; align-items:center; gap:8px;
+    padding:calc(16px + env(safe-area-inset-top)) 14px 14px;
+    border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .drawer-body{ flex:1; overflow-y:auto; padding:14px 14px calc(20px + var(--safe-b)); }
+  .settings-menu-item{
+    display:flex; align-items:center; gap:12px; background:var(--surface-2); border:1px solid var(--line);
+    border-radius:14px; padding:14px; margin-bottom:10px; cursor:pointer;
+  }
+  .settings-menu-icon{
+    width:36px; height:36px; border-radius:10px; background:var(--surface-3);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--gold-soft);
+  }
+  .settings-menu-icon svg{width:17px; height:17px;}
+  .settings-menu-item svg:last-child{width:16px; height:16px; opacity:.4; flex-shrink:0;}
+  .sheet{
+    width:100%; max-height:88%; background:var(--surface);
+    border-radius:26px 26px 0 0; border:1px solid var(--line); border-bottom:none;
+    display:flex; flex-direction:column;
+    animation:slideUp .22s cubic-bezier(.2,.9,.25,1);
+  }
+  @keyframes slideUp{from{transform:translateY(30px); opacity:.4} to{transform:translateY(0); opacity:1}}
+  .sheet .grabber{width:40px;height:4px;border-radius:3px;background:var(--line); margin:10px auto 4px;}
+  .sheet-head{
+    display:flex; align-items:center; gap:10px; padding:8px 18px 12px; border-bottom:1px solid var(--line);
+  }
+  .sheet-head h3{font-size:16px; flex:1;}
+  .sheet-body{
+    padding:16px 18px calc(22px + var(--safe-b));
+    overflow-y:auto;
+  }
+  .sheet-actions{
+    padding:14px 18px calc(20px + var(--safe-b));
+    border-top:1px solid var(--line);
+    display:flex; flex-direction:column; gap:10px;
+    /* ensures action buttons always sit above the phone home-indicator gesture bar */
+  }
+
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12px; color:var(--cream-dim); font-weight:700; margin-bottom:6px;}
+  .field input[type=text], .field input[type=tel], .field textarea, .field input[type=number]{
+    width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:12px;
+    padding:12px 12px; color:var(--cream); font-family:'Tajawal'; font-size:14px; outline:none;
+  }
+  .field input:focus, .field textarea:focus{border-color:var(--gold);}
+  .field textarea{resize:none; min-height:64px;}
+  .row2{display:flex; gap:10px;}
+  .row2 .field{flex:1;}
+  .tap-field{
+    display:flex; align-items:center; justify-content:space-between; width:100%;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:12px;
+    padding:12px; color:var(--cream); font-size:14px; cursor:pointer; font-weight:700;
+  }
+  .tap-field svg{width:16px;height:16px; opacity:.7;}
+  .hint{font-size:10.5px; color:var(--cream-dim); margin-top:5px;}
+
+  .segmented{display:flex; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:3px;}
+  .segmented .seg{flex:1; text-align:center; padding:9px; font-size:12.5px; font-weight:700; color:var(--cream-dim); border-radius:9px; cursor:pointer;}
+  .segmented .seg.active{background:var(--gold); color:#20180a;}
+
+  /* mini calendar picker inside sheet */
+  .mini-cal .weekdays span{color:var(--cream-dim);}
+  .mini-cal .daysgrid{gap:4px;}
+  .mini-cal .day{font-size:11.5px; aspect-ratio:1/1; background:var(--surface-2); color:var(--cream); font-weight:700;}
+  .mini-cal .day.sel{background:var(--gold); color:#20180a;}
+  .mini-cal .day.past{opacity:.3; pointer-events:none;}
+
+  /* circular time picker */
+  .clock-wrap{display:flex; flex-direction:column; align-items:center; gap:14px;}
+  .clock-readout{font-family:'Cairo'; font-size:34px; font-weight:800; letter-spacing:1px; color:var(--gold-soft);}
+  .clock-face{position:relative; width:230px; height:230px;}
+  .clock-num{
+    position:absolute; width:34px; height:34px; margin:-17px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800;
+    color:var(--cream-dim); cursor:pointer;
+  }
+  .clock-num.active{background:var(--gold); color:#20180a;}
+  .clock-center{
+    position:absolute; left:50%; top:50%; width:8px; height:8px; margin:-4px; border-radius:50%; background:var(--gold);
+  }
+  .ampm-toggle{display:flex; gap:8px;}
+  .ampm-toggle .a{
+    padding:8px 20px; border-radius:100px; background:var(--surface-2); border:1px solid var(--line);
+    font-weight:800; font-size:13px; color:var(--cream-dim); cursor:pointer;
+  }
+  .ampm-toggle .a.active{background:var(--gold); color:#20180a; border-color:var(--gold);}
+  .clock-step-label{font-size:11.5px; color:var(--cream-dim); font-weight:700;}
+
+  /* expense / revenue table */
+  .table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .table th{color:var(--cream-dim); font-weight:700; text-align:right; padding:8px 6px; border-bottom:1px solid var(--line); font-size:11px;}
+  .table td{padding:9px 6px; border-bottom:1px solid #232936; }
+  .table tr:last-child td{border-bottom:none;}
+  .table.compact6{font-size:10px;}
+  .table.compact6 th{padding:6px 3px; font-size:9px;}
+  .table.compact6 td{padding:7px 3px;}
+  .table.compact6 .mini-icon-btn{width:24px; height:24px; border-radius:7px;}
+  .table.compact6 .mini-icon-btn svg{width:11px; height:11px;}
+  .pill{padding:3px 9px; border-radius:100px; font-size:10px; font-weight:800;}
+  .pill.rented{background:rgba(209,84,74,.18); color:#ec8179;}
+  .pill.prelim{background:rgba(224,145,47,.18); color:#f0b567;}
+  .pill.settled{background:rgba(63,124,176,.18); color:#8fbde3;}
+  .pill.income{background:rgba(47,163,112,.18); color:#7fe0b3;}
+  .pill.expense{background:rgba(209,84,74,.18); color:#ec8179;}
+
+  .empty-state{text-align:center; padding:40px 10px; color:var(--cream-dim);}
+  .empty-state svg{width:44px;height:44px; opacity:.4; margin-bottom:10px;}
+  .empty-state p{font-size:13px;}
+
+  .toast{
+    position:absolute; bottom:96px; left:50%; transform:translateX(-50%);
+    background:var(--surface-3); border:1px solid var(--line); padding:10px 18px; border-radius:100px;
+    font-size:12.5px; font-weight:700; z-index:2000; box-shadow:0 10px 24px rgba(0,0,0,.4);
+    animation:toastIn .2s ease;
+  }
+  @keyframes toastIn{from{opacity:0; transform:translate(-50%,10px)} to{opacity:1; transform:translate(-50%,0)}}
+
+  .stepper{display:flex; align-items:center; gap:12px;}
+  .stepper button{
+    width:34px;height:34px;border-radius:10px; border:1px solid var(--line); background:var(--surface-2);
+    color:var(--cream); font-size:16px; cursor:pointer;
+  }
+  .stepper .v{font-family:'Cairo'; font-weight:800; font-size:15px; min-width:46px; text-align:center;}
+
+  .switch{width:44px;height:26px;border-radius:100px; background:var(--surface-3); border:1px solid var(--line); position:relative; cursor:pointer; flex-shrink:0;}
+  .switch .knob{position:absolute; top:2px; right:2px; width:20px;height:20px;border-radius:50%; background:var(--cream-dim); transition:.15s;}
+  .switch.on{background:var(--gold); border-color:var(--gold);}
+  .switch.on .knob{right:20px; background:#20180a;}
+
+  .setting-row{display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:10px;}
+  .setting-row .txt{flex:1;}
+  .setting-row .t1{font-weight:700; font-size:13.5px;}
+  .setting-row .t2{font-size:11px; color:var(--cream-dim); margin-top:3px;}
+
+  .reminder-item{display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:14px; padding:11px; margin-bottom:9px;}
+  .reminder-item .rb{width:36px;height:36px;border-radius:10px; background:var(--surface-3); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .reminder-item .rb svg{width:17px;height:17px;}
+  .reminder-item .t1{font-weight:700; font-size:13px;}
+  .reminder-item .t2{font-size:11px; color:var(--cream-dim); margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div id="boot-splash" style="position:fixed; inset:0; background:var(--ink); z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;">
+  <div style="font-family:'Aref Ruqaa',serif; font-size:52px; line-height:1.3; letter-spacing:1px; background:linear-gradient(160deg,#f3dfa0,#d4af37 55%,#b8862f); -webkit-background-clip:text; background-clip:text; color:transparent; padding-bottom:8px;">اجار</div>
+  <div style="font-size:13.5px; color:#c9c3b3; font-weight:600; margin-top:4px;">كل حجوزاتك منظمة في مكان واحد</div>
+</div>
+
+<!-- global SVG gradient defs -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="gG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0d78a"/><stop offset="1" stop-color="#b8862f"/>
+    </linearGradient>
+    <linearGradient id="gCream" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f0e6"/><stop offset="1" stop-color="#c9c3b3"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="phone" id="phone">
+  <div id="appbar-slot"></div>
+  <div class="screen" id="screen"></div>
+  <div id="modal-slot"></div>
+  <div id="drawer-slot"></div>
+  <div class="bottomnav" id="bottomnav"></div>
+</div>
+
+<script>
+/* ============================= ICONS ============================= */
+const ICONS = {
+  key:`<svg viewBox="0 0 48 48" fill="none"><path d="M20 6a12 12 0 1 0 7.2 21.6L30 30l3-3 3 3 4-4-3-3 2.3-2.3A12 12 0 0 0 20 6Z" fill="url(#gG)"/><circle cx="20" cy="18" r="4" fill="#1b202b"/></svg>`,
+  chalet:`<svg viewBox="0 0 48 48" fill="none"><path d="M24 6 4 20v2h4v18h32V22h4v-2L24 6Z" fill="url(#gG)"/><rect x="20" y="26" width="8" height="14" fill="#211d14"/><rect x="12" y="24" width="6" height="6" rx="1" fill="#3a3222"/><rect x="30" y="24" width="6" height="6" rx="1" fill="#3a3222"/><path d="M24 6 4 20l2 3 18-13 18 13 2-3L24 6Z" fill="#8a6a24"/></svg>`,
+  farm:`<svg viewBox="0 0 48 48" fill="none"><rect x="6" y="20" width="20" height="18" fill="url(#gG)"/><path d="M6 20 16 8l10 12H6Z" fill="#8a6a24"/><rect x="14" y="28" width="4" height="10" fill="#211d14"/><path d="M32 38V22c6-4 8 0 8 6v10" stroke="url(#gG)" stroke-width="3" fill="none"/><path d="M30 16c2 3 2 6 0 9M34 14c2 4 2 8 0 12M38 16c2 3 2 6 0 9" stroke="#e8cd7a" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`,
+  car:`<svg viewBox="0 0 48 48" fill="none"><path d="M8 28 11 18a4 4 0 0 1 4-3h18a4 4 0 0 1 4 3l3 10v8h-4a4 4 0 0 1-8 0H20a4 4 0 0 1-8 0H8v-8Z" fill="url(#gG)"/><path d="M13 19h22l2 7H11l2-7Z" fill="#211d14"/><circle cx="16" cy="36" r="3.4" fill="#211d14"/><circle cx="32" cy="36" r="3.4" fill="#211d14"/></svg>`,
+  apartment:`<svg viewBox="0 0 48 48" fill="none"><rect x="10" y="6" width="28" height="36" fill="url(#gG)"/><rect x="15" y="11" width="5" height="5" fill="#211d14"/><rect x="24" y="11" width="5" height="5" fill="#211d14"/><rect x="15" y="20" width="5" height="5" fill="#211d14"/><rect x="24" y="20" width="5" height="5" fill="#211d14"/><rect x="15" y="29" width="5" height="5" fill="#211d14"/><rect x="24" y="29" width="5" height="5" fill="#211d14"/><rect x="19" y="38" width="10" height="4" fill="#211d14"/></svg>`,
+  home:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-8Z"/></svg>`,
+  search:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`,
+  bell:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 10a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>`,
+  wallet:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></svg>`,
+  back:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="m14 6-6 6 6 6"/></svg>`,
+  arrowL:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="m14 6-6 6 6 6"/></svg>`,
+  arrowR:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="m10 6 6 6-6 6"/></svg>`,
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>`,
+  calendar:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`,
+  clock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`,
+  edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16v4Z"/></svg>`,
+  trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 13 4 4 10-10"/></svg>`,
+  phone:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-2.5 2A11 11 0 0 0 14 16.5l2-2.5 5 2v4a1 1 0 0 1-1 1C10 21 3 14 3 5a1 1 0 0 1 1-1Z"/></svg>`,
+  bank:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10 12 4l9 6M4 10v9M20 10v9M8 10v9M16 10v9M2 21h20"/></svg>`,
+  pin:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M8 3h8l-1 6 2 2v2H7v-2l2-2-1-6Z"/></svg>`,
+  pinFilled:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17v5h0M8 3h8l-1 6 2.5 2.5A1 1 0 0 1 18.8 13H5.2a1 1 0 0 1-.7-1.7L7 9 6 3Z"/></svg>`,
+  download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0-4-4m4 4 4-4M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>`,
+  copy:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>`,
+  upload:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V9m0 0-4 4m4-4 4 4M4 6V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.9 7.9 0 0 0 0-2l2-1.5-2-3.4-2.3.9a8 8 0 0 0-1.7-1L15 3h-4l-.4 2.4a8 8 0 0 0-1.7 1l-2.3-.9-2 3.4L6.6 11a7.9 7.9 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a8 8 0 0 0 1.7 1L11 21h4l.4-2.4a8 8 0 0 0 1.7-1l2.3.9 2-3.4-2-1.5Z"/></svg>`,
+  filterIcon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M7 12h10M10 19h4"/></svg>`,
+  gauge:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12 8 9M4 15a8 8 0 1 1 16 0"/></svg>`,
+  note:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>`,
+  car2:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13l1.5-5A2 2 0 0 1 6.4 6.5h11.2a2 2 0 0 1 1.9 1.5L21 13v5H3v-5Z"/><circle cx="7.5" cy="18" r="1.5"/><circle cx="16.5" cy="18" r="1.5"/></svg>`,
+  user:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>`,
+  moon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.5A9 9 0 1 1 11.5 3 7 7 0 0 0 21 12.5Z"/></svg>`,
+  info:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.5"/></svg>`,
+  chevronL:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="m9 6 6 6-6 6"/></svg>`,
+  undo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10h11a5 5 0 0 1 0 10h-2M4 10l4-4M4 10l4 4"/></svg>`
+};
+function icon(name){ return ICONS[name] || ''; }
+const catIcon = {chalets:'chalet', farms:'farm', cars:'car', apartments:'apartment'};
+const catSingular = {chalets:'شاليه', farms:'مزرعة', cars:'سيارة', apartments:'شقة'};
+
+/* ============================= DATA (in-memory demo store) ============================= */
+const CATS = [
+  {id:'chalets', name:'شاليهات'},
+  {id:'farms', name:'مزارع'},
+  {id:'cars', name:'سيارات'},
+  {id:'apartments', name:'شقق'},
+];
+
+let UNITS = [
+  {id:'u1', cat:'chalets', name:'شاليه اللؤلؤة', loc:'طريق الملك فهد'},
+  {id:'u2', cat:'chalets', name:'شاليه الواحة', loc:'حي النرجس'},
+  {id:'u3', cat:'farms', name:'مزرعة الروضة', loc:'الخرج'},
+  {id:'u4', cat:'cars', name:'كامري 2024', loc:'أبيض لؤلؤي', plate:'أ ب ج 1234'},
+  {id:'u5', cat:'cars', name:'جيب لكزس', loc:'أسود', plate:'د هـ و 5678'},
+  {id:'u6', cat:'apartments', name:'شقة برج السلام', loc:'الدور 12'},
+];
+let unitSeq = 7;
+
+function pad(n){return String(n).padStart(2,'0');}
+function todayStr(){const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function ymd(y,m,d){return `${y}-${pad(m)}-${pad(d)}`;}
+const WEEKDAY_NAMES = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+function weekdayName(dateStr){ return WEEKDAY_NAMES[new Date(dateStr+'T00:00:00').getDay()]; }
+function dateWithDay(dateStr){
+  return `<div style="font-weight:800;">${weekdayName(dateStr)}</div><div style="font-size:10px; color:var(--cream-dim); font-weight:600;">${dateStr.slice(5).split('-').reverse().join('/')}</div>`;
+}
+
+let idSeq = 100;
+let BOOKINGS = [
+  {id:'b1', unitId:'u1', date: shiftDate(2), name:'فهد العتيبي', phone:'0501234567', checkin:'16:00', checkout:'12:00', total:1200, deposit:400, notes:'وصول مساءً', status:'rented', settled:false},
+  {id:'b2', unitId:'u1', date: shiftDate(5), name:'', phone:'', checkin:'', checkout:'', total:0, deposit:0, notes:'', status:'prelim', settled:false},
+  {id:'b3', unitId:'u4', date: shiftDate(1), name:'سارة القحطاني', phone:'0559876543', checkin:'09:00', checkout:'20:00', total:350, deposit:350, notes:'', status:'rented', settled:false},
+  {id:'b4', unitId:'u1', date: shiftDate(-2), name:'ماجد الدوسري', phone:'0533331122', checkin:'16:00', checkout:'12:00', total:1200, deposit:1200, notes:'تم السداد كامل', status:'rented', settled:true},
+  {id:'b5', unitId:'u6', date: shiftDate(3), name:'نورة الشمري', phone:'0512223344', checkin:'14:00', checkout:'11:00', total:600, deposit:200, notes:'', status:'rented', settled:false},
+];
+function shiftDate(days){
+  const d = new Date(); d.setDate(d.getDate()+days);
+  return ymd(d.getFullYear(), d.getMonth()+1, d.getDate());
+}
+
+let EXPENSES = [
+  {id:'e1', unitId:'u1', date: shiftDate(-3), desc:'صيانة تكييف', amount:180},
+  {id:'e2', unitId:'u1', date: shiftDate(-1), desc:'تنظيف', amount:60},
+  {id:'e3', unitId:'u4', date: shiftDate(-2), desc:'غسيل وتلميع', amount:40},
+];
+
+let NOTIF = {enabled:true, beforeCheckin:120, beforeCheckout:120};
+const REMINDER_PRESETS = [15, 30, 40, 45, 60, 90, 120, 180];
+function reminderLabel(mins){
+  if(mins < 60) return mins + ' دقيقة';
+  if(mins % 60 === 0){
+    const h = mins/60;
+    return h===1?'ساعة':(h===2?'ساعتين':h+' ساعات');
+  }
+  return Math.floor(mins/60) + ' س ' + (mins%60) + ' د';
+}
+
+/* ============================= REMINDER ENGINE (works while the app is open/running) ============================= */
+const NOTIFIED_KEY = 'ejar_notified_v1';
+function getNotifiedSet(){
+  try{ return new Set(JSON.parse(localStorage.getItem(NOTIFIED_KEY)||'[]')); }catch(e){ return new Set(); }
+}
+function markNotified(key){
+  const s = getNotifiedSet(); s.add(key);
+  try{ localStorage.setItem(NOTIFIED_KEY, JSON.stringify([...s])); }catch(e){}
+}
+function playBeep(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.6);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+0.6);
+  }catch(e){}
+}
+// On Android Chrome, once a Service Worker controls the page, `new Notification()`
+// throws "Illegal constructor" — notifications must go through the SW registration instead.
+async function showAppNotification(title, options){
+  try{
+    if('serviceWorker' in navigator){
+      const reg = await navigator.serviceWorker.ready;
+      if(reg && reg.showNotification){
+        await reg.showNotification(title, options);
+        return true;
+      }
+    }
+    new Notification(title, options);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+function fireReminder(b, field, label){
+  const u = unitById(b.unitId);
+  const title = 'تذكير ' + label;
+  const time = field==='checkin' ? b.checkin : b.checkout;
+  const body = `${u.name} — ${b.name} · الساعة ${time}`;
+  playBeep();
+  if('Notification' in window && Notification.permission==='granted'){
+    showAppNotification(title, {body, icon:'icon-192.png'}).then(ok=>{ if(!ok) toast(title+': '+body); });
+  } else {
+    toast(title + ': ' + body);
+  }
+}
+function checkReminders(){
+  if(!NOTIF.enabled) return;
+  const now = new Date();
+  const notified = getNotifiedSet();
+  BOOKINGS.forEach(b=>{
+    if(!b.name) return;
+    [['checkin', NOTIF.beforeCheckin, 'الاستلام'], ['checkout', NOTIF.beforeCheckout, 'التسليم']].forEach(([field, mins, label])=>{
+      const t = b[field];
+      if(!t) return;
+      const key = b.id+':'+field;
+      if(notified.has(key)) return;
+      const [hh,mm] = t.split(':').map(Number);
+      const eventDt = new Date(b.date+'T00:00:00');
+      eventDt.setHours(hh, mm, 0, 0);
+      const notifyAt = new Date(eventDt.getTime() - mins*60000);
+      if(now >= notifyAt && now <= eventDt){
+        fireReminder(b, field, label);
+        markNotified(key);
+      }
+    });
+  });
+}
+
+/* ============================= PERSISTENCE (saves on this device/browser) ============================= */
+const LS_KEY = 'ejar_app_data_v1';
+const THEME_KEY = 'ejar_theme_pref';
+function getThemePref(){
+  try{ return localStorage.getItem(THEME_KEY) || 'dark'; }catch(e){ return 'dark'; }
+}
+function setThemePref(pref){
+  try{ localStorage.setItem(THEME_KEY, pref); }catch(e){}
+  applyTheme();
+}
+function applyTheme(){
+  const pref = getThemePref();
+  let resolved = pref;
+  if(pref==='auto'){
+    resolved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+  }
+  document.documentElement.setAttribute('data-theme', resolved==='light' ? 'light' : 'dark');
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if(metaTheme) metaTheme.setAttribute('content', resolved==='light' ? '#f7f4ee' : '#0d0f14');
+}
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', ()=>{
+    if(getThemePref()==='auto') applyTheme();
+  });
+}
+applyTheme();
+let pinnedUnitId = null;
+/* ============================= CLOUD SYNC + AUTH (Firebase) — real per-account security ============================= */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDivmrpK4g23CtHWdMvTiMQoD6_u4McVN4",
+  authDomain: "ejar-app-99c14.firebaseapp.com",
+  projectId: "ejar-app-99c14",
+  storageBucket: "ejar-app-99c14.firebasestorage.app",
+  messagingSenderId: "400557487479",
+  appId: "1:400557487479:web:2d6e83827f1c43969f9d72"
+};
+const USER_NAME_KEY = 'ejar_user_name';
+let cloudDb = null;
+let cloudSyncTimer = null;
+let syncStatus = 'idle'; // idle | syncing | synced | error | offline
+let unsubscribeSnapshot = null;
+let lastAppliedUpdatedAt = 0;
+let authUser = null;
+let authReady = false;
+const CACHED_AUTH_KEY = 'ejar_cached_auth';
+function getCachedAuth(){
+  try{ return JSON.parse(localStorage.getItem(CACHED_AUTH_KEY)||'null'); }catch(e){ return null; }
+}
+function setCachedAuth(user){
+  try{
+    if(user) localStorage.setItem(CACHED_AUTH_KEY, JSON.stringify({uid:user.uid, email:user.email}));
+    else localStorage.removeItem(CACHED_AUTH_KEY);
+  }catch(e){}
+}
+let authMode = 'login'; // login | signup
+let authError = '';
+let isOwnerMode = false;
+let ownerGateNeeded = false;
+let ownerGateError = '';
+let settingsDrawerOpen = false;
+try{
+  if(typeof firebase !== 'undefined'){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    cloudDb = firebase.firestore();
+  }
+}catch(e){ /* firebase failed to load (offline on first run) — handled by the auth-timeout fallback below */ }
+
+function getUserName(){
+  try{ return localStorage.getItem(USER_NAME_KEY) || ''; }catch(e){ return ''; }
+}
+function setUserName(name){
+  try{ if(name) localStorage.setItem(USER_NAME_KEY, name); else localStorage.removeItem(USER_NAME_KEY); }catch(e){}
+}
+function scheduleCloudSync(){
+  if(!authUser || !cloudDb) return;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(pushToCloud, 1200);
+}
+async function pushToCloud(){
+  if(!authUser) return;
+  if(!cloudDb){ syncStatus='offline'; refreshSyncBadge(); return; }
+  syncStatus = 'syncing'; refreshSyncBadge();
+  const updatedAt = Date.now();
+  lastAppliedUpdatedAt = updatedAt; // set BEFORE writing — Firestore fires an immediate local echo
+                                     // of our own write before the server confirms; this stops that
+                                     // echo from being treated as a "remote change" and re-rendering.
+  const payload = {UNITS, BOOKINGS, EXPENSES, NOTIF, unitSeq, idSeq, pinnedUnitId, updatedAt, updatedBy: getUserName()||authUser.email||'مستخدم', ownerPin: accountOwnerPin, subscriptionExpiresAt: subscriptionExpiresAt};
+  try{
+    await cloudDb.collection('backups').doc(authUser.uid).set(payload);
+    syncStatus = 'synced';
+  }catch(e){
+    syncStatus = 'error';
+  }
+  refreshSyncBadge();
+}
+async function pullFromCloud(uid){
+  if(!cloudDb) return {status:'no-db'};
+  try{
+    const doc = await cloudDb.collection('backups').doc(uid).get();
+    return doc.exists ? {status:'found', data:doc.data()} : {status:'not-found'};
+  }catch(e){
+    return {status:'error', error:e};
+  }
+}
+function applyCloudData(data){
+  if(Array.isArray(data.UNITS)) UNITS = data.UNITS;
+  if(Array.isArray(data.BOOKINGS)) BOOKINGS = data.BOOKINGS;
+  if(Array.isArray(data.EXPENSES)) EXPENSES = data.EXPENSES;
+  if(data.NOTIF) NOTIF = data.NOTIF;
+  if(typeof data.unitSeq==='number') unitSeq = data.unitSeq;
+  if(typeof data.idSeq==='number') idSeq = data.idSeq;
+  if(data.pinnedUnitId!==undefined) pinnedUnitId = data.pinnedUnitId;
+  if(data.ownerPin!==undefined) accountOwnerPin = data.ownerPin;
+  if(data.subscriptionExpiresAt!==undefined) subscriptionExpiresAt = data.subscriptionExpiresAt;
+}
+function refreshSyncBadge(){
+  const el = document.getElementById('syncStatusBadge');
+  if(!el) return;
+  const map = {
+    idle:'—', syncing:'جاري المزامنة...', synced:'✔ مباشر — أي تغيير يوصلك فورًا',
+    error:'تعذر الاتصال بالإنترنت', offline:'بدون اتصال'
+  };
+  el.textContent = map[syncStatus] || '';
+}
+
+/* Live listener: reflects changes from ANY device signed into the same account immediately */
+function startCloudListener(uid){
+  if(!cloudDb || !uid) return;
+  if(unsubscribeSnapshot) unsubscribeSnapshot();
+  unsubscribeSnapshot = cloudDb.collection('backups').doc(uid).onSnapshot(
+    (doc)=>{
+      if(!doc.exists) return;
+      const data = doc.data();
+      if(!data.updatedAt || data.updatedAt <= lastAppliedUpdatedAt) return;
+      const isOwnEcho = data.updatedBy===(getUserName()||authUser?.email) && (Date.now()-data.updatedAt) < 4000;
+      lastAppliedUpdatedAt = data.updatedAt;
+      applyCloudData(data);
+      saveStateLocalOnly();
+      if(!isOwnEcho){
+        toast(`تحديث جديد من ${data.updatedBy||'مستخدم آخر'}`);
+      }
+      syncStatus = 'synced';
+      render();
+    },
+    ()=>{ syncStatus='error'; refreshSyncBadge(); }
+  );
+}
+function stopCloudListener(){
+  if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+}
+
+/* ---- Auth actions ---- */
+function authErrorLabel(code){
+  const map = {
+    'auth/email-already-in-use':'هذا البريد مسجّل مسبقًا — جرب "دخول" بدل "حساب جديد"',
+    'auth/invalid-email':'صيغة البريد الإلكتروني غير صحيحة',
+    'auth/weak-password':'كلمة المرور ضعيفة، لازم 6 أحرف على الأقل',
+    'auth/user-not-found':'ما فيه حساب مسجّل بهذا البريد',
+    'auth/wrong-password':'كلمة المرور غير صحيحة',
+    'auth/invalid-credential':'البريد أو كلمة المرور غير صحيحة',
+    'auth/too-many-requests':'محاولات كثيرة متتالية، حاول بعد شوي',
+    'auth/network-request-failed':'تأكد من اتصال الإنترنت',
+    'auth/operation-not-allowed':'تسجيل الدخول بالبريد وكلمة المرور غير مفعّل بعد بمشروع Firebase — روح Authentication ← Sign-in method ← فعّل Email/Password',
+    'auth/unauthorized-domain':'موقعك غير مصرّح له بالدخول — روح Authentication ← Settings ← Authorized domains وأضف رابط موقعك',
+    'auth/configuration-not-found':'خدمة تسجيل الدخول (Authentication) ما تفعّلت بعد بمشروعك — روح لقسم Authentication بـ Firebase واضغط Get started',
+    'auth/admin-restricted-operation':'إنشاء الحسابات مقفول حاليًا — تأكد إن Email/Password مفعّل من Authentication ← Sign-in method'
+  };
+  return map[code] || ('صار خطأ غير متوقع (' + (code||'بدون رمز') + ') — خذ لقطة شاشة لهذا النص وأرسلها');
+}
+let pendingSignupOwnerPin = null;
+let accountOwnerPin = null;
+let subscriptionExpiresAt = null; // ms timestamp; null until signup sets the free-trial end date
+
+/* ============================= SUBSCRIPTION / PAYMENT CONFIG =============================
+   Edit these 3 values to match your real ShamCash account and price before going live. */
+const TRIAL_DAYS = 7;
+const SUBSCRIPTION_PRICE_LABEL = '1000 ل.س سنويًا';
+const SHAMCASH_ACCOUNT = '52522aa9aff843118624e988647fa325';
+const CONTACT_WHATSAPP = '963942010040'; // e.g. '9639xxxxxxxx' (no +, no leading 0) — leave '' to hide the WhatsApp button
+const PLAY_STORE_URL = ''; // fill in once published on Google Play, e.g. 'https://play.google.com/store/apps/details?id=...'
+const OWNER_UNLOCK_PREFIX = 'ejar_owner_unlocked_';
+function getOwnerUnlockState(uid){
+  try{ return localStorage.getItem(OWNER_UNLOCK_PREFIX+uid) || ''; }catch(e){ return ''; }
+}
+function setOwnerUnlockState(uid, val){
+  try{ localStorage.setItem(OWNER_UNLOCK_PREFIX+uid, val); }catch(e){}
+}
+function goToInitialScreen(){
+  if(pinnedUnitId && unitById(pinnedUnitId)){
+    state.view='unit'; state.unitId=pinnedUnitId;
+    navStack=[{type:'view', view:'unit', extra:{unitId:pinnedUnitId}}];
+  } else {
+    state.view='home';
+    navStack=[{type:'view', view:'home', extra:{}}];
+  }
+}
+
+async function submitAuthForm(email, password, ownerPin){
+  authError = '';
+  if(!cloudDb || typeof firebase==='undefined'){ authError='تعذر الاتصال بخدمة الحسابات — تأكد من الإنترنت'; render(); return; }
+  if(!email || !password){ authError='أدخل البريد الإلكتروني وكلمة المرور'; render(); return; }
+  if(authMode==='signup' && (!ownerPin || !/^\d{4}$/.test(ownerPin))){
+    authError='اكتب PIN المالك مكوّن من 4 أرقام بالضبط'; render(); return;
+  }
+  try{
+    if(authMode==='login'){
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+    } else {
+      pendingSignupOwnerPin = ownerPin;
+      await firebase.auth().createUserWithEmailAndPassword(email, password);
+    }
+    // onAuthStateChanged below takes it from here
+  }catch(e){
+    authError = authErrorLabel(e.code);
+    render();
+  }
+}
+async function sendPasswordReset(email){
+  if(!email){ toast('اكتب بريدك الإلكتروني أولًا'); return; }
+  try{
+    await firebase.auth().sendPasswordResetEmail(email);
+    toast('تم إرسال رابط إعادة تعيين كلمة المرور لبريدك الإلكتروني');
+  }catch(e){
+    toast('تعذر الإرسال: ' + authErrorLabel(e.code));
+  }
+}
+function logOut(){
+  stopCloudListener();
+  firebase.auth().signOut();
+}
+
+function unlinkSyncCode(){ logOut(); } // kept for any stray references; auth screen handles sign-out via logOut()
+
+function persistLocal(){
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify({UNITS, BOOKINGS, EXPENSES, NOTIF, unitSeq, idSeq, pinnedUnitId, updatedAt: Date.now()}));
+  }catch(e){ /* storage unavailable — app still works, just won't persist */ }
+}
+function saveState(){
+  persistLocal();
+  scheduleCloudSync();
+}
+function saveStateLocalOnly(){
+  persistLocal();
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(Array.isArray(data.UNITS)) UNITS = data.UNITS;
+    if(Array.isArray(data.BOOKINGS)) BOOKINGS = data.BOOKINGS;
+    if(Array.isArray(data.EXPENSES)) EXPENSES = data.EXPENSES;
+    if(data.NOTIF){
+      NOTIF = data.NOTIF;
+      // migrate old hour-based values (pre-update) to minutes
+      if(NOTIF.beforeCheckin!==undefined && NOTIF.beforeCheckin < 15) NOTIF.beforeCheckin *= 60;
+      if(NOTIF.beforeCheckout!==undefined && NOTIF.beforeCheckout < 15) NOTIF.beforeCheckout *= 60;
+    }
+    if(typeof data.unitSeq==='number') unitSeq = data.unitSeq;
+    if(typeof data.idSeq==='number') idSeq = data.idSeq;
+    if(data.pinnedUnitId) pinnedUnitId = data.pinnedUnitId;
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ============================= STATE ============================= */
+let state = {
+  tab:'home',
+  view:'home',
+  catId:null,
+  unitId:null,
+  calYear:new Date().getFullYear(),
+  calMonth:new Date().getMonth()+1,
+  modal:null,       // {type, ...}
+  searchQ:'',
+  searchFilter:'all',
+  revenueMode:'all',        // 'all' | 'week' | 'month'
+  revenueAnchor:null,       // date string anchoring which week/month is shown (null = today)
+  settingsTab:'account',    // active tab in the unified settings screen
+};
+
+function go(view, extra={}){
+  state = {...state, view, ...extra};
+  navStack.push({type:'view', view, extra});
+  pushHistoryEntry();
+  render();
+}
+function openModal(m){
+  state.modal = m;
+  navStack.push({type:'modal'});
+  pushHistoryEntry();
+  renderModal();
+}
+function closeModal(){
+  state.modal = null;
+  renderModal();
+  popNavIfModalTop();
+}
+
+function openSettingsDrawer(){
+  settingsDrawerOpen = true;
+  navStack.push({type:'drawer'});
+  pushHistoryEntry();
+  renderSettingsDrawer();
+}
+function closeSettingsDrawer(){
+  settingsDrawerOpen = false;
+  renderSettingsDrawer();
+  popNavIfModalTop();
+}
+function refreshSettingsOrScreen(){
+  if(settingsDrawerOpen) renderSettingsDrawer();
+  else renderScreen();
+}
+function renderSettingsDrawer(){
+  const slot = document.getElementById('drawer-slot');
+  if(!slot) return;
+  if(!settingsDrawerOpen){ slot.innerHTML=''; return; }
+  slot.innerHTML = `
+  <div class="drawer-scrim" id="drawerScrim">
+    <div class="drawer-panel" id="drawerPanel">
+      <div class="drawer-head">
+        <div class="icon-btn" id="drawerCloseBtn">${icon('back')}</div>
+        <h2 style="flex:1; text-align:center; font-size:17px;">الإعدادات</h2>
+        <div style="width:38px;"></div>
+      </div>
+      <div class="drawer-body">${screenSettingsMenu()}</div>
+    </div>
+  </div>`;
+  const scrimEl = document.getElementById('drawerScrim');
+  if(scrimEl) scrimEl.onclick = (e)=>{ if(e.target===scrimEl) closeSettingsDrawer(); };
+  const closeBtn = document.getElementById('drawerCloseBtn');
+  if(closeBtn) closeBtn.onclick = closeSettingsDrawer;
+  document.querySelectorAll('[data-settings-goto]').forEach(el=>{
+    el.onclick = ()=>{
+      const target = el.dataset.settingsGoto;
+      closeSettingsDrawer();
+      go(target);
+    };
+  });
+}
+
+/* ============================= BACK BUTTON / HISTORY HANDLING ============================= */
+let navStack = [{type:'view', view:'home', extra:{}}];
+let suppressPopstate = false;
+let backPressArmed = false;
+let backPressTimer = null;
+
+function pushHistoryEntry(){
+  history.pushState({navLen: navStack.length}, '', location.pathname + location.search);
+}
+function popNavIfModalTop(){
+  if(navStack.length>1 && (navStack[navStack.length-1].type==='modal' || navStack[navStack.length-1].type==='drawer')){
+    navStack.pop();
+    suppressPopstate = true;
+    history.back();
+  }
+}
+
+window.addEventListener('popstate', ()=>{
+  if(suppressPopstate){ suppressPopstate = false; return; }
+
+  if(navStack.length > 1){
+    const popped = navStack.pop();
+    if(popped.type==='modal'){
+      state.modal = null;
+      renderModal();
+    }
+    if(popped.type==='drawer'){
+      settingsDrawerOpen = false;
+      renderSettingsDrawer();
+    }
+    const top = navStack[navStack.length-1];
+    if(top.type==='view'){
+      state = {...state, view: top.view, ...top.extra};
+      render();
+    }
+    return;
+  }
+
+  // Already at the base screen — this back press is trying to leave the app
+  if(!backPressArmed){
+    backPressArmed = true;
+    toast('اضغط رجوع مرة أخرى للخروج');
+    pushHistoryEntry(); // re-arm: cancels this exit attempt
+    clearTimeout(backPressTimer);
+    backPressTimer = setTimeout(()=>{ backPressArmed = false; }, 2000);
+  }
+  // if already armed (second press within 2s), we do nothing — the app is allowed to exit
+});
+
+function toast(msg){
+  const t = document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  document.getElementById('phone').appendChild(t);
+  setTimeout(()=>t.remove(), 1600);
+}
+
+/* ============================= HELPERS ============================= */
+function unitsOf(catId){ return UNITS.filter(u=>u.cat===catId); }
+function unitById(id){ return UNITS.find(u=>u.id===id); }
+function bookingsOf(unitId){ return BOOKINGS.filter(b=>b.unitId===unitId); }
+function bookingOnDate(unitId, date){ return BOOKINGS.find(b=>b.unitId===unitId && b.date===date); }
+function expensesOf(unitId){ return EXPENSES.filter(e=>e.unitId===unitId); }
+function fmtMoney(n){ return (n||0).toLocaleString('en-US'); }
+function grandTotal(b){ return (b.total||0) + (b.damageFee||0); }
+function remainingAmt(b){ return grandTotal(b) - (b.deposit||0); }
+function dayStatus(b){
+  if(!b) return 'avail';
+  if(b.settled) return 'settled';
+  return b.status; // rented | prelim
+}
+function catName(id){ return (CATS.find(c=>c.id===id)||{}).name || ''; }
+
+function daysInMonth(y,m){ return new Date(y,m,0).getDate(); }
+// JS getDay(): 0=Sun..6=Sat. We want week to start Saturday -> map Sat=0
+function weekdayIndexSat(y,m,d){
+  const jsDay = new Date(y,m-1,d).getDay(); // 0 Sun..6 Sat
+  return (jsDay+1)%7; // Sat=0, Sun=1 ... Fri=6
+}
+
+/* ============================= RENDER: SHELL ============================= */
+function render(){
+  if(!authUser || ownerGateNeeded || (subscriptionExpiresAt && Date.now() > subscriptionExpiresAt)){
+    if(settingsDrawerOpen){ settingsDrawerOpen = false; }
+    const drawerSlot = document.getElementById('drawer-slot');
+    if(drawerSlot) drawerSlot.innerHTML = '';
+  }
+  if(!authReady){
+    document.getElementById('appbar-slot').innerHTML = '';
+    document.getElementById('bottomnav').innerHTML = '';
+    document.getElementById('screen').innerHTML = `<div class="empty-state" style="padding-top:160px;"><p>جاري التحقق من الحساب...</p></div>`;
+    return;
+  }
+  if(!authUser){
+    document.getElementById('appbar-slot').innerHTML = '';
+    document.getElementById('bottomnav').innerHTML = '';
+    document.getElementById('screen').innerHTML = screenAuth();
+    bindAuthEvents();
+    renderModal();
+    return;
+  }
+  if(ownerGateNeeded){
+    document.getElementById('appbar-slot').innerHTML = '';
+    document.getElementById('bottomnav').innerHTML = '';
+    document.getElementById('screen').innerHTML = screenOwnerGate();
+    bindOwnerGateEvents();
+    return;
+  }
+  if(subscriptionExpiresAt && Date.now() > subscriptionExpiresAt){
+    document.getElementById('appbar-slot').innerHTML = '';
+    document.getElementById('bottomnav').innerHTML = '';
+    document.getElementById('screen').innerHTML = screenSubscriptionLocked();
+    bindSubscriptionLockedEvents();
+    return;
+  }
+  renderAppbar();
+  renderScreen();
+  renderBottomnav();
+  renderModal();
+}
+
+function screenSubscriptionLocked(){
+  const wasTrial = true; // both trial and paid subscriptions share the same field/flow
+  return `
+  <div style="min-height:88vh; display:flex; flex-direction:column; justify-content:center; padding:10px 4px;">
+    <div style="text-align:center; margin-bottom:22px;">
+      <div class="wordmark" style="font-size:34px;">اجار</div>
+      <div class="tag" style="margin-top:6px;">انتهت الفترة التجريبية المجانية</div>
+    </div>
+    <div class="hint" style="line-height:1.9; text-align:center; margin-bottom:20px; font-size:13.5px;">
+      لمتابعة استخدام التطبيق، حوّل قيمة الاشتراك عبر شام كاش، ثم أرسل لنا رقم عملية التحويل حتى نفعّل حسابك خلال وقت قصير.
+    </div>
+    <div class="stat-card gold" style="padding:16px; margin-bottom:14px;">
+      <div class="lbl">قيمة الاشتراك</div>
+      <div class="val" style="font-size:19px; margin-top:6px;">${SUBSCRIPTION_PRICE_LABEL}</div>
+    </div>
+    <div class="stat-card" style="padding:16px; margin-bottom:20px; background:var(--surface-2); border:1px solid var(--line);">
+      <div class="lbl">التحويل عبر شام كاش إلى</div>
+      <div style="display:flex; justify-content:center; margin:12px 0;">
+        <img src="shamcash-qr.png" alt="رمز شام كاش" style="width:180px; height:auto; border-radius:12px; border:1px solid var(--line);">
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+        <div class="val" style="font-size:15px; color:var(--gold-soft); direction:ltr; text-align:center; flex:1; word-break:break-all;">${SHAMCASH_ACCOUNT}</div>
+        <div class="icon-btn" id="copyShamCashBtn" title="نسخ">${icon('copy')}</div>
+      </div>
+    </div>
+    ${CONTACT_WHATSAPP ? `<a href="https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent('السلام عليكم، حوّلت قيمة اشتراك اجار وأبي تفعيل حسابي. بريدي: '+(authUser?authUser.email:''))}" target="_blank" style="text-decoration:none;">
+      <button class="big-btn">${icon('phone')} أرسل رقم العملية عبر واتساب</button>
+    </a>` : `<div class="hint" style="text-align:center;">تواصل مع مزوّد التطبيق لإتمام التفعيل.</div>`}
+    <button class="big-btn ghost" id="lockedLogoutBtn" style="margin-top:12px;">تسجيل خروج</button>
+  </div>
+  `;
+}
+function bindSubscriptionLockedEvents(){
+  const btn = document.getElementById('lockedLogoutBtn');
+  if(btn) btn.onclick = logOut;
+  const copyBtn = document.getElementById('copyShamCashBtn');
+  if(copyBtn) copyBtn.onclick = ()=> copyToClipboard(SHAMCASH_ACCOUNT, 'تم نسخ رقم الحساب');
+}
+async function copyToClipboard(text, successMsg){
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    toast(successMsg || 'تم النسخ');
+  }catch(e){
+    toast('تعذّر النسخ — انسخه يدويًا');
+  }
+}
+
+function screenOwnerGate(){
+  return `
+  <div style="min-height:88vh; display:flex; flex-direction:column; justify-content:center; padding:10px 4px;">
+    <div style="text-align:center; margin-bottom:26px;">
+      <div class="wordmark" style="font-size:36px;">اجار</div>
+      <div class="tag">هل أنت صاحب الحساب أو موظف؟</div>
+    </div>
+    <div class="field"><label>PIN المالك (إذا أنت صاحب الحساب)</label><input type="text" inputmode="numeric" maxlength="4" id="gatePinInput" placeholder="****"></div>
+    ${ownerGateError?`<div class="hint" style="color:#ec8179; margin-bottom:12px; line-height:1.7;">${ownerGateError}</div>`:''}
+    <button class="big-btn" id="gateUnlockBtn">${icon('check')} أنا المالك — فتح كل الصلاحيات</button>
+    <button class="big-btn ghost" id="gateStaffBtn" style="margin-top:10px">متابعة كموظف (حجز فقط، بدون تعديل أو حذف)</button>
+    <div class="hint" style="text-align:center; margin-top:16px; line-height:1.7;">هذا الاختيار يُحفظ على هذا الجهاز فقط، وتقدر تغيّره لاحقًا من الإعدادات</div>
+  </div>`;
+}
+function bindOwnerGateEvents(){
+  const unlockBtn = document.getElementById('gateUnlockBtn');
+  if(unlockBtn) unlockBtn.onclick = ()=>{
+    const pin = document.getElementById('gatePinInput').value.trim();
+    if(!pin){ ownerGateError='اكتب الـ PIN أولًا'; render(); return; }
+    if(accountOwnerPin && pin===accountOwnerPin){
+      isOwnerMode = true; ownerGateNeeded=false; ownerGateError='';
+      setOwnerUnlockState(authUser.uid, 'owner');
+      goToInitialScreen();
+      render();
+    } else {
+      ownerGateError = 'PIN غير صحيح، حاول مرة ثانية';
+      render();
+    }
+  };
+  const staffBtn = document.getElementById('gateStaffBtn');
+  if(staffBtn) staffBtn.onclick = ()=>{
+    isOwnerMode = false; ownerGateNeeded=false; ownerGateError='';
+    setOwnerUnlockState(authUser.uid, 'staff');
+    goToInitialScreen();
+    render();
+  };
+}
+
+function screenAuth(){
+  return `
+  <div style="min-height:88vh; display:flex; flex-direction:column; justify-content:center; padding:10px 4px;">
+    <div style="text-align:center; margin-bottom:26px;">
+      <div class="wordmark" style="font-size:42px;">اجار</div>
+      <div class="tag">${authMode==='login'?'سجّل الدخول لحسابك الخاص':'أنشئ حسابك الخاص'}</div>
+    </div>
+    <div class="segmented" style="margin-bottom:20px;">
+      <div class="seg ${authMode==='login'?'active':''}" data-authmode="login">دخول</div>
+      <div class="seg ${authMode==='signup'?'active':''}" data-authmode="signup">حساب جديد</div>
+    </div>
+    <div class="field"><label>البريد الإلكتروني</label><input type="email" id="authEmail" placeholder="example@email.com" autocomplete="username"></div>
+    <div class="field"><label>كلمة المرور</label><input type="password" id="authPassword" placeholder="6 أحرف على الأقل" autocomplete="${authMode==='login'?'current-password':'new-password'}"></div>
+    ${authMode==='signup'?`<div class="field"><label>PIN المالك (4 أرقام)</label><input type="text" inputmode="numeric" maxlength="4" id="authOwnerPin" placeholder="مثال: 1234"><div class="hint" style="margin-top:6px;">هذا الرقم يفتح صلاحية التعديل والحذف الكاملة. تقدر تعطي بريدك وكلمة مرورك لموظفينك للحجز فقط، وتحتفظ بهذا الـPIN لنفسك.</div></div>`:''}
+    ${authMode==='signup'?`<label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:16px; cursor:pointer;">
+      <input type="checkbox" id="authAgreeTerms" style="margin-top:3px; width:16px; height:16px; flex-shrink:0;">
+      <span style="font-size:12.5px; color:var(--cream-dim); line-height:1.7;">أوافق على <span id="viewTermsLink" style="color:var(--gold-soft); text-decoration:underline; cursor:pointer;">الشروط وسياسة الخصوصية</span></span>
+    </label>`:''}
+    ${authError?`<div class="hint" style="color:#ec8179; margin-bottom:12px; line-height:1.7;">${authError}</div>`:''}
+    <button class="big-btn" id="authSubmitBtn">${icon('check')} ${authMode==='login'?'دخول':'إنشاء الحساب'}</button>
+    ${authMode==='login'?`<div class="hint" style="text-align:center; margin-top:16px; cursor:pointer; text-decoration:underline;" id="forgotPasswordLink">نسيت كلمة المرور؟</div>`:
+      `<div class="hint" style="text-align:center; margin-top:16px; line-height:1.7;">بياناتك الحالية على هذا الجهاز راح تُربط تلقائيًا بحسابك الجديد</div>`}
+    <div class="hint" style="text-align:center; margin-top:28px; opacity:.55; font-size:11px;">تطوير Nour Ali</div>
+  </div>`;
+}
+function bindAuthEvents(){
+  document.querySelectorAll('[data-authmode]').forEach(el=>{
+    el.onclick = ()=>{ authMode = el.dataset.authmode; authError=''; render(); };
+  });
+  const submitBtn = document.getElementById('authSubmitBtn');
+  if(submitBtn) submitBtn.onclick = ()=>{
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const pinEl = document.getElementById('authOwnerPin');
+    const ownerPin = pinEl ? pinEl.value.trim() : null;
+    if(authMode==='signup'){
+      const agreeEl = document.getElementById('authAgreeTerms');
+      if(!agreeEl || !agreeEl.checked){
+        authError = 'لازم توافق على الشروط وسياسة الخصوصية أول';
+        render();
+        return;
+      }
+    }
+    submitAuthForm(email, password, ownerPin);
+  };
+  const forgotLink = document.getElementById('forgotPasswordLink');
+  if(forgotLink) forgotLink.onclick = ()=>{
+    sendPasswordReset(document.getElementById('authEmail').value.trim());
+  };
+  const termsLink = document.getElementById('viewTermsLink');
+  if(termsLink) termsLink.onclick = ()=> openModal({type:'terms'});
+}
+
+function renderAppbar(){
+  const slot = document.getElementById('appbar-slot');
+  let backTo = null, title='', sub='', extraBtn='';
+  if(state.view==='home'){ title=''; }
+  else if(state.view==='category'){ title = catName(state.catId); backTo=()=>go('home'); }
+  else if(state.view==='unit'){
+    const u=unitById(state.unitId); title=u.name; sub=(u.cat==='cars'&&u.plate)?(u.loc+' · لوحة: '+u.plate):u.loc;
+    backTo=()=>go('category',{catId:u.cat});
+    const isPinned = pinnedUnitId===u.id;
+    extraBtn = `<div class="icon-btn" id="pinBtn" title="${isPinned?'إلغاء تثبيت الشاشة الرئيسية':'اجعلها الشاشة الرئيسية'}" style="${isPinned?'color:var(--gold-soft); border-color:var(--gold-soft);':''}">${icon(isPinned?'pinFilled':'pin')}</div>`;
+  }
+  else if(state.view==='revenue'){ const u=unitById(state.unitId); title='إيرادات ومصاريف'; sub=u.name; backTo=()=>go('unit',{unitId:u.id}); }
+  else if(state.view==='general-revenue'){ title='الإيرادات العامة'; backTo=()=>go('home',{tab:'home'}); }
+  else if(state.view==='search'){ title='البحث'; }
+  else if(state.view==='settings'){ title='الإعدادات'; backTo=()=>go('home'); }
+  else if(state.view==='settings-account'){ title='الحساب'; backTo=()=>go('home'); }
+  else if(state.view==='settings-theme'){ title='المظهر'; backTo=()=>go('home'); }
+  else if(state.view==='settings-subscription'){ title='الاشتراك'; backTo=()=>go('home'); }
+  else if(state.view==='settings-notifications'){ title='الإشعارات'; backTo=()=>go('home'); }
+  else if(state.view==='settings-about'){ title='حول التطبيق'; backTo=()=>go('home'); }
+  else if(state.view==='settings-contact'){ title='تواصل مع المطوّر'; backTo=()=>go('home'); }
+
+  if(state.view==='home'){
+    slot.innerHTML = `<div class="appbar">
+      <div style="flex:1"></div>
+      <div class="icon-btn" id="backupBtn">${icon('settings')}</div>
+    </div>`;
+    document.getElementById('backupBtn').onclick = ()=> openSettingsDrawer();
+    return;
+  }
+  slot.innerHTML = `<div class="appbar">
+    ${backTo?`<div class="icon-btn" id="backBtn">${icon('back')}</div>`:''}
+    <div style="flex:1">
+      <h2>${title}</h2>
+      ${sub?`<div class="sub">${sub}</div>`:''}
+    </div>
+    ${extraBtn}
+  </div>`;
+  if(backTo) document.getElementById('backBtn').onclick = backTo;
+  const pinBtn = document.getElementById('pinBtn');
+  if(pinBtn) pinBtn.onclick = ()=>{
+    if(pinnedUnitId===state.unitId){ pinnedUnitId=null; toast('تم إلغاء تثبيت الشاشة الرئيسية'); }
+    else { pinnedUnitId=state.unitId; toast('صارت هذي الوحدة هي الشاشة الرئيسية'); }
+    saveState();
+    renderAppbar();
+  };
+}
+
+function renderBottomnav(){
+  const items = [
+    {id:'home', label:'الرئيسية', icon:'home', view:'home'},
+    {id:'search', label:'البحث', icon:'search', view:'search'},
+    {id:'settings', label:'الإعدادات', icon:'settings', view:'settings'},
+    {id:'general-revenue', label:'الإيرادات العامة', icon:'wallet', view:'general-revenue'},
+  ];
+  const activeView = settingsDrawerOpen ? 'settings' : (state.view.startsWith('settings') ? 'settings' : (['home','category','unit','revenue'].includes(state.view) ? 'home' : state.view));
+  document.getElementById('bottomnav').innerHTML = items.map(it=>`
+    <div class="navitem ${activeView===it.id?'active':''}" data-nav="${it.view}">
+      ${icon(it.icon)}<span>${it.label}</span>
+    </div>`).join('');
+  document.querySelectorAll('[data-nav]').forEach(el=>{
+    el.onclick = ()=>{
+      if(el.dataset.nav==='settings'){ openSettingsDrawer(); return; }
+      go(el.dataset.nav);
+    };
+  });
+}
+
+/* ============================= RENDER: SCREENS ============================= */
+let lastRenderedViewKey = null;
+function renderScreen(){
+  const s = document.getElementById('screen');
+  if(state.view==='home') s.innerHTML = screenHome();
+  else if(state.view==='category') s.innerHTML = screenCategory();
+  else if(state.view==='unit') s.innerHTML = screenUnit();
+  else if(state.view==='revenue') s.innerHTML = screenRevenue();
+  else if(state.view==='general-revenue') s.innerHTML = screenGeneralRevenue();
+  else if(state.view==='search') s.innerHTML = screenSearch();
+  else if(state.view==='settings') s.innerHTML = screenSettingsMenu();
+  else if(state.view==='settings-account') s.innerHTML = settingsTabAccount();
+  else if(state.view==='settings-theme') s.innerHTML = settingsTabTheme();
+  else if(state.view==='settings-subscription') s.innerHTML = settingsTabSubscription();
+  else if(state.view==='settings-notifications') s.innerHTML = notificationsTabContent();
+  else if(state.view==='settings-about') s.innerHTML = settingsTabAbout();
+  else if(state.view==='settings-contact') s.innerHTML = settingsTabContact();
+  const viewKey = state.view + ':' + (state.unitId||'') + ':' + (state.catId||'');
+  if(viewKey !== lastRenderedViewKey){
+    s.scrollTop = 0;
+    lastRenderedViewKey = viewKey;
+  }
+  bindScreenEvents();
+  saveStateLocalOnly();
+}
+
+function screenHome(){
+  return `
+  <div class="hero">
+    <div class="wordmark">اجار</div>
+    <div class="tag">إدارة تأجير العقارات والمركبات</div>
+  </div>
+  <div class="cat-grid">
+    ${CATS.map(c=>`
+      <div class="cat-card" data-cat="${c.id}">
+        <div class="glow"></div>
+        <div class="icon-wrap">${icon(catIcon[c.id])}</div>
+        <div>
+          <div class="name">${c.name}</div>
+          <div class="count">${unitsOf(c.id).length} وحدة</div>
+        </div>
+      </div>`).join('')}
+  </div>
+  <div class="section-title">وصول سريع</div>
+  <div class="quick-row">
+    <div class="quick-btn" data-nav="search">${icon('search')}<span>بحث بالاسم / الجوال</span></div>
+    <div class="quick-btn" data-nav="general-revenue">${icon('wallet')}<span>الإيرادات العامة</span></div>
+    <div class="quick-btn" data-nav="notifications">${icon('bell')}<span>التذكيرات</span></div>
+  </div>
+  `;
+}
+
+function screenCategory(){
+  const list = unitsOf(state.catId);
+  const singular = catSingular[state.catId] || 'وحدة';
+  return `
+  ${isOwnerMode?`<button class="big-btn ghost" id="addUnitBtn" style="margin-top:8px">${icon('plus')} إضافة ${singular}</button>`:''}
+  <div class="search-bar"><span>${icon('search')}</span><input placeholder="ابحث عن وحدة..." id="unitSearch" value=""></div>
+  <div id="unitList">${renderUnitList(list)}</div>
+  `;
+}
+function renderUnitList(list){
+  if(!list.length) return `<div class="empty-state">${icon('note')}<p>لا توجد وحدات في هذه الفئة بعد</p></div>`;
+  return list.map(u=>{
+    const today = todayStr();
+    const b = bookingOnDate(u.id, today);
+    const st = dayStatus(b);
+    const color = {avail:'var(--green)',rented:'var(--red)',prelim:'var(--orange)',settled:'var(--blue)'}[st];
+    const label = {avail:'متاحة اليوم',rented:'مؤجرة اليوم',prelim:'حجز مبدئي اليوم',settled:'مسكّرة اليوم'}[st];
+    const meta = u.cat==='cars' && u.plate ? `${u.loc} · لوحة: ${u.plate} · ${label}` : `${u.loc} · ${label}`;
+    return `
+    <div class="unit-card" data-unit="${u.id}">
+      <div class="thumb">${icon(catIcon[u.cat])}</div>
+      <div class="info">
+        <div class="n">${u.name}</div>
+        <div class="m">${meta}</div>
+      </div>
+      <div class="status-dot" style="background:${color}"></div>
+      ${isOwnerMode?`<div class="card-actions">
+        <div class="mini-icon-btn" data-edit-unit="${u.id}">${icon('edit')}</div>
+        <div class="mini-icon-btn danger" data-del-unit="${u.id}">${icon('trash')}</div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function screenUnit(){
+  const u = unitById(state.unitId);
+  const {calYear:y, calMonth:m} = state;
+  const monthLabel = `${pad(m)} / ${y}`;
+  const dim = daysInMonth(y,m);
+  const startIdx = weekdayIndexSat(y,m,1);
+  let cells = '';
+  for(let i=0;i<startIdx;i++) cells += `<div class="day empty-cell"></div>`;
+  for(let d=1; d<=dim; d++){
+    const date = ymd(y,m,d);
+    const b = bookingOnDate(u.id, date);
+    const st = dayStatus(b);
+    const isToday = date===todayStr();
+    const tag = st==='rented'?'مؤجر':st==='prelim'?'مبدئي':st==='settled'?'مسكّر':'';
+    const isFullyPaid = b && grandTotal(b)>0 && (b.deposit||0) >= grandTotal(b);
+    cells += `<div class="day ${st} ${isToday?'today':''}" data-date="${date}">
+      <span>${d}</span>${tag?`<span class="tag">${tag}</span>`:''}${isFullyPaid?`<span class="paid-badge">${icon('check')}</span>`:''}
+    </div>`;
+  }
+  const bks = bookingsOf(u.id);
+  const rev = bks.reduce((s,b)=>s+(b.total||0),0);
+  const exp = expensesOf(u.id).reduce((s,e)=>s+(e.amount||0),0);
+
+  return `
+  <div class="month-nav">
+    <div class="marrow" id="prevMonth">${icon('arrowR')}</div>
+    <div class="mtitle">${monthLabel}</div>
+    <div class="marrow" id="nextMonth">${icon('arrowL')}</div>
+  </div>
+  <div class="legend">
+    <div class="li"><span class="dot" style="background:var(--green)"></span>متاح</div>
+    <div class="li"><span class="dot" style="background:var(--red)"></span>مؤجر</div>
+    <div class="li"><span class="dot" style="background:var(--orange)"></span>حجز مبدئي</div>
+    <div class="li"><span class="dot" style="background:var(--blue)"></span>مسكّر مع المحاسب</div>
+  </div>
+  <div class="weekdays"><span>سبت</span><span>أحد</span><span>إثن</span><span>ثلا</span><span>أرب</span><span>خمي</span><span>جمع</span></div>
+  <div class="daysgrid">${cells}</div>
+
+  <div class="revenue-strip">
+    <div class="stat-card green"><div class="lbl">إجمالي إيرادات الوحدة</div><div class="val">${fmtMoney(rev)}</div></div>
+    <div class="stat-card red"><div class="lbl">إجمالي مصاريف الوحدة</div><div class="val">${fmtMoney(exp)}</div></div>
+  </div>
+  <button class="big-btn ghost" id="goRevenue">${icon('wallet')} صفحة إيرادات ومصاريف الوحدة</button>
+  `;
+}
+
+function getPeriodRange(mode, anchorStr){
+  const anchor = new Date((anchorStr||todayStr())+'T00:00:00');
+  if(mode==='week'){
+    const day = anchor.getDay();
+    const diff = (day+1)%7; // days since Saturday (app week starts Saturday)
+    const start = new Date(anchor); start.setDate(anchor.getDate()-diff);
+    const end = new Date(start); end.setDate(start.getDate()+6);
+    return {start, end};
+  }
+  if(mode==='month'){
+    const start = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    const end = new Date(anchor.getFullYear(), anchor.getMonth()+1, 0);
+    return {start, end};
+  }
+  return null;
+}
+function fmtShort(d){ return pad(d.getDate())+'/'+pad(d.getMonth()+1); }
+function periodLabel(mode, anchorStr){
+  const now = todayStr();
+  const range = getPeriodRange(mode, anchorStr);
+  if(!range) return 'كل الفترات';
+  if(mode==='month') return pad(range.start.getMonth()+1)+' / '+range.start.getFullYear();
+  const label = fmtShort(range.start)+' — '+fmtShort(range.end);
+  const curRange = getPeriodRange('week', now);
+  if(mode==='week' && range.start.getTime()===curRange.start.getTime()) return 'هذا الأسبوع (' + label + ')';
+  return label;
+}
+function shiftRevenueAnchor(dir){
+  const mode = state.revenueMode;
+  const anchor = new Date((state.revenueAnchor||todayStr())+'T00:00:00');
+  if(mode==='week') anchor.setDate(anchor.getDate()+7*dir);
+  else if(mode==='month') anchor.setMonth(anchor.getMonth()+dir);
+  state.revenueAnchor = ymd(anchor.getFullYear(), anchor.getMonth()+1, anchor.getDate());
+}
+function inRevenuePeriod(dateStr, mode, anchorStr){
+  const range = getPeriodRange(mode, anchorStr);
+  if(!range) return true;
+  const d = new Date(dateStr+'T00:00:00');
+  return d>=range.start && d<=range.end;
+}
+
+function screenRevenue(){
+  const u = unitById(state.unitId);
+  const mode = state.revenueMode || 'all';
+  const anchor = state.revenueAnchor || todayStr();
+  const bks = bookingsOf(u.id).filter(b=>inRevenuePeriod(b.date,mode,anchor));
+  const exps = expensesOf(u.id).filter(e=>inRevenuePeriod(e.date,mode,anchor));
+  const totalRev = bks.reduce((s,b)=>s+grandTotal(b),0);
+  const totalPaid = bks.reduce((s,b)=>s+(b.deposit||0),0);
+  const totalRemain = totalRev-totalPaid;
+  const totalExp = exps.reduce((s,e)=>s+(e.amount||0),0);
+  const net = totalRev-totalExp;
+
+  // merge bookings + expenses into one chronological list
+  let txns = [];
+  bks.forEach(b=> txns.push({type:'income', date:b.date, sortKey:b.date+'a', id:b.id, booking:b}));
+  exps.forEach(e=> txns.push({type:'expense', date:e.date, sortKey:e.date+'b', id:e.id, expense:e}));
+  txns.sort((a,b)=> a.sortKey.localeCompare(b.sortKey));
+
+  return `
+  <div class="section-title" style="margin-top:10px">ملخص الوحدة</div>
+  <div class="filter-chips" style="margin-bottom:10px;">
+    ${[['all','الكل'],['week','أسبوعي'],['month','شهري']].map(([k,l])=>`
+      <div class="chip ${mode===k?'active':''}" data-mode="${k}">${l}</div>`).join('')}
+  </div>
+  ${mode!=='all' ? `
+  <div class="month-nav" style="margin:6px 0 14px;">
+    <div class="marrow" id="prevPeriod">${icon('arrowR')}</div>
+    <div class="mtitle" style="font-size:15px">${periodLabel(mode, anchor)}</div>
+    <div class="marrow" id="nextPeriod">${icon('arrowL')}</div>
+  </div>` : ''}
+  <div class="revenue-strip">
+    <div class="stat-card green"><div class="lbl">إجمالي الإيرادات</div><div class="val">${fmtMoney(totalRev)}</div></div>
+    <div class="stat-card red"><div class="lbl">إجمالي المصاريف</div><div class="val">${fmtMoney(totalExp)}</div></div>
+    <div class="stat-card gold"><div class="lbl">الصافي</div><div class="val">${fmtMoney(net)}</div></div>
+  </div>
+
+  <div class="stat-card gold" style="margin:14px 0 20px; display:flex; align-items:center; justify-content:space-between; padding:14px 16px;">
+    <div>
+      <div class="lbl">الصافي بعد خصم المصاريف تلقائيًا</div>
+      <div style="font-size:11px; color:var(--cream-dim); margin-top:5px;">${fmtMoney(totalRev)} إيرادات − ${fmtMoney(totalExp)} مصاريف</div>
+    </div>
+    <div class="val" style="font-size:21px;">${fmtMoney(net)}</div>
+  </div>
+
+  <div class="section-title">الإيرادات والمصاريف معًا</div>
+  ${txns.length? `<table class="table compact6">
+    <tr><th>التاريخ</th><th>البيان</th><th>الإجمالي</th><th>مدفوع</th><th>متبقي</th><th></th></tr>
+    ${txns.map(t=>{
+      if(t.type==='income'){
+        const b = t.booking;
+        const gt = grandTotal(b);
+        const remain = remainingAmt(b);
+        return `<tr data-open-booking="${b.id}" style="cursor:pointer;">
+          <td>${dateWithDay(b.date)}</td>
+          <td>${b.name||'حجز مبدئي'}${b.damageFee?`<div style="font-size:9px; color:#ec8179; margin-top:2px;">فيها تعويض ${fmtMoney(b.damageFee)}</div>`:''}</td>
+          <td style="color:var(--green); font-weight:800;">+${fmtMoney(gt)}</td>
+          <td>${fmtMoney(b.deposit)}</td>
+          <td style="color:${remain>0?'#ec8179':'var(--cream-dim)'};">${fmtMoney(remain)}</td>
+          <td>${isOwnerMode ? (!b.settled?`<div class="mini-icon-btn" data-settle="${b.id}" title="تسكير">${icon('bank')}</div>`:`<div class="mini-icon-btn" data-unsettle="${b.id}" title="تراجع عن التسكير">${icon('undo')}</div>`) : (b.settled?`<span class="pill settled">✔</span>`:'')}</td>
+        </tr>`;
+      } else {
+        const e = t.expense;
+        return `<tr>
+          <td>${dateWithDay(e.date)}</td>
+          <td>${e.desc}</td>
+          <td colspan="3" style="color:#ec8179; font-weight:800;">−${fmtMoney(e.amount)}</td>
+          <td>${isOwnerMode ? `
+            <div style="display:flex; gap:4px;">
+              <div class="mini-icon-btn" data-edit-expense="${e.id}" title="تعديل">${icon('edit')}</div>
+              <div class="mini-icon-btn danger" data-del-expense="${e.id}" title="حذف">${icon('trash')}</div>
+            </div>
+          ` : ''}</td>
+        </tr>`;
+      }
+    }).join('')}
+    <tr>
+      <td colspan="2" style="font-weight:800; color:var(--cream-dim)">الإجمالي</td>
+      <td style="font-weight:800; color:var(--green)">${fmtMoney(totalRev)}</td>
+      <td style="font-weight:800; color:var(--cream)">${fmtMoney(totalPaid)}</td>
+      <td style="font-weight:800; color:#ec8179">${fmtMoney(totalRemain)}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td colspan="2" style="font-weight:800; color:var(--cream-dim)">الصافي (بعد خصم المصاريف)</td>
+      <td colspan="4" style="font-weight:800; color:${net>=0?'var(--green)':'#ec8179'}">${fmtMoney(net)}</td>
+    </tr>
+  </table>` : `<div class="empty-state">${icon('note')}<p>لا توجد حركات مسجّلة${mode!=='all'?' بهذي الفترة':' بعد'}</p></div>`}
+
+  ${isOwnerMode ? `<button class="big-btn ghost" id="addExpenseBtn">${icon('plus')} إضافة مصروف</button>` : ''}
+  `;
+}
+
+function screenGeneralRevenue(){
+  const perUnit = UNITS.map(u=>{
+    const rev = bookingsOf(u.id).reduce((s,b)=>s+(b.total||0),0);
+    const exp = expensesOf(u.id).reduce((s,e)=>s+(e.amount||0),0);
+    return {u, rev, exp};
+  });
+  const totalRev = perUnit.reduce((s,x)=>s+x.rev,0);
+  const totalExp = perUnit.reduce((s,x)=>s+x.exp,0);
+  return `
+  <div class="revenue-strip">
+    <div class="stat-card green"><div class="lbl">إجمالي كل الإيرادات</div><div class="val">${fmtMoney(totalRev)}</div></div>
+    <div class="stat-card red"><div class="lbl">إجمالي كل المصاريف</div><div class="val">${fmtMoney(totalExp)}</div></div>
+    <div class="stat-card gold"><div class="lbl">الصافي الكلي</div><div class="val">${fmtMoney(totalRev-totalExp)}</div></div>
+  </div>
+  <div class="section-title">حسب الفئة</div>
+  ${CATS.map(c=>{
+    const units = perUnit.filter(x=>x.u.cat===c.id);
+    const r = units.reduce((s,x)=>s+x.rev,0), e = units.reduce((s,x)=>s+x.exp,0);
+    return `<div class="unit-card" style="cursor:default">
+      <div class="thumb">${icon(catIcon[c.id])}</div>
+      <div class="info"><div class="n">${c.name}</div><div class="m">صافي: ${fmtMoney(r-e)}</div></div>
+    </div>`;
+  }).join('')}
+  <div class="section-title">تفصيل حسب الوحدة</div>
+  <table class="table">
+    <tr><th>الوحدة</th><th>إيرادات</th><th>مصاريف</th><th>الصافي</th></tr>
+    ${perUnit.map(x=>`<tr><td>${x.u.name}</td><td>${fmtMoney(x.rev)}</td><td>${fmtMoney(x.exp)}</td><td>${fmtMoney(x.rev-x.exp)}</td></tr>`).join('')}
+  </table>
+  `;
+}
+
+function screenSearch(){
+  const q = state.searchQ.trim();
+  let bookingResults = [];
+  let unitResults = [];
+  if(q){
+    if(state.searchFilter==='plate'){
+      unitResults = UNITS.filter(u=> u.cat==='cars' && (u.plate||'').includes(q));
+    } else if(state.searchFilter==='name'){
+      bookingResults = BOOKINGS.filter(b=> (b.name||'').includes(q));
+    } else if(state.searchFilter==='phone'){
+      bookingResults = BOOKINGS.filter(b=> (b.phone||'').includes(q));
+    } else {
+      bookingResults = BOOKINGS.filter(b=> (b.name||'').includes(q) || (b.phone||'').includes(q));
+      unitResults = UNITS.filter(u=> u.cat==='cars' && (u.plate||'').includes(q));
+    }
+  }
+  const hasResults = bookingResults.length || unitResults.length;
+  return `
+  <div class="search-bar"><span>${icon('search')}</span><input id="searchInput" placeholder="اسم المستأجر، رقم الهاتف، أو رقم اللوحة" value="${q}"></div>
+  <div class="filter-chips">
+    ${[['all','الكل'],['name','الاسم'],['phone','الهاتف'],['plate','رقم اللوحة']].map(([k,l])=>`
+      <div class="chip ${state.searchFilter===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
+  </div>
+  ${!q ? `<div class="empty-state">${icon('search')}<p>اكتب اسمًا أو رقم جوال أو رقم لوحة للبحث عن حجز</p></div>` :
+    hasResults ? `
+    ${unitResults.map(u=>`
+      <div class="unit-card" data-goto-unit="${u.id}">
+        <div class="thumb">${icon(catIcon[u.cat])}</div>
+        <div class="info">
+          <div class="n">${u.name}</div>
+          <div class="m">لوحة: ${u.plate} · ${u.loc}</div>
+        </div>
+      </div>`).join('')}
+    ${bookingResults.map(b=>{
+      const u = unitById(b.unitId);
+      return `<div class="unit-card" data-goto="${u.id}|${b.date}">
+        <div class="thumb">${icon(catIcon[u.cat])}</div>
+        <div class="info">
+          <div class="n">${b.name||'حجز مبدئي'}</div>
+          <div class="m">${u.name} · ${b.date.split('-').reverse().join('/')} ${b.phone?'· '+b.phone:''}</div>
+        </div>
+        <div class="status-dot" style="background:${b.settled?'var(--blue)':b.status==='rented'?'var(--red)':'var(--orange)'}"></div>
+      </div>`;
+    }).join('')}
+    ` : `<div class="empty-state">${icon('note')}<p>لا توجد نتائج مطابقة</p></div>`
+  }
+  `;
+}
+
+function notificationsTabContent(){
+  const upcoming = BOOKINGS.filter(b=>b.name && b.date >= todayStr()).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+  const permState = ('Notification' in window) ? Notification.permission : 'unsupported';
+  const permLabel = {granted:'✔ مفعّل', denied:'✘ ممنوع من إعدادات الجوال', default:'لم يُطلب بعد', unsupported:'غير مدعوم بهذا المتصفح'}[permState];
+  return `
+  <div class="section-title" style="margin-top:0">الإشعارات</div>
+  <div class="hint" style="line-height:1.8; margin-bottom:14px;">
+    التنبيهات تصلك مع صوت بينما التطبيق مفتوح أو شغّال بالخلفية. لو أغلقت التطبيق تمامًا من قائمة التطبيقات الأخيرة، قد لا يصلك التنبيه في وقته بالضبط.
+  </div>
+  <div class="setting-row">
+    <div class="txt"><div class="t1">إذن الإشعارات من الجوال</div><div class="t2">${permLabel}</div></div>
+    <button class="big-btn ghost" id="testNotifBtn" style="margin:0; padding:10px 16px; font-size:12.5px;">${icon('bell')} جرّب الآن</button>
+  </div>
+  <div class="setting-row">
+    <div class="txt"><div class="t1">تفعيل إشعارات التذكير</div><div class="t2">تنبيه قبل مواعيد التسليم والاستلام</div></div>
+    <div class="switch ${NOTIF.enabled?'on':''}" id="notifMaster"><div class="knob"></div></div>
+  </div>
+  <div class="setting-row" style="flex-direction:column; align-items:stretch;">
+    <div class="txt" style="margin-bottom:10px">
+      <div class="t1">التنبيه قبل الاستلام (تسليم الوحدة للمستأجر)</div>
+      <div class="t2">اختر قبل كم من الموعد يوصلك التنبيه</div>
+    </div>
+    <div class="filter-chips" style="margin:0; flex-wrap:wrap; overflow:visible;">
+      ${REMINDER_PRESETS.map(m=>`<div class="chip ${NOTIF.beforeCheckin===m?'active':''}" data-ci-preset="${m}">${reminderLabel(m)}</div>`).join('')}
+    </div>
+  </div>
+  <div class="setting-row" style="flex-direction:column; align-items:stretch;">
+    <div class="txt" style="margin-bottom:10px">
+      <div class="t1">التنبيه قبل التسليم (استلام الوحدة من المستأجر)</div>
+      <div class="t2">اختر قبل كم من الموعد يوصلك التنبيه</div>
+    </div>
+    <div class="filter-chips" style="margin:0; flex-wrap:wrap; overflow:visible;">
+      ${REMINDER_PRESETS.map(m=>`<div class="chip ${NOTIF.beforeCheckout===m?'active':''}" data-co-preset="${m}">${reminderLabel(m)}</div>`).join('')}
+    </div>
+  </div>
+  <div class="section-title">تذكيرات قادمة</div>
+  ${upcoming.length? upcoming.map(b=>{
+    const u = unitById(b.unitId);
+    return `<div class="reminder-item">
+      <div class="rb">${icon(catIcon[u.cat])}</div>
+      <div style="flex:1">
+        <div class="t1">${u.name} — ${b.name}</div>
+        <div class="t2">${b.date.split('-').reverse().join('/')} · استلام ${b.checkin||'--:--'} · تسليم ${b.checkout||'--:--'}</div>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty-state">${icon('bell')}<p>لا توجد تذكيرات قادمة حاليًا</p></div>`}
+  `;
+}
+
+function settingsTabAccount(){
+  const myName = getUserName();
+  return `
+  <div class="section-title" style="margin-top:0">حسابك</div>
+  <div class="hint" style="line-height:1.8; margin-bottom:12px;">
+    مسجّل دخول بالبريد: <b style="color:var(--gold-soft)">${authUser?authUser.email:''}</b><br>
+    بياناتك محمية بكلمة مرور خاصة فيك، ولا يقدر يشوفها أي شخص ثاني.
+  </div>
+  <div class="field"><label>اسمك (يظهر بجانب كل حجز تسويه)</label><input type="text" id="userNameInput" placeholder="مثال: محمد" value="${myName}"></div>
+  <button class="big-btn ghost" id="saveNameBtn" style="margin-bottom:16px;">${icon('check')} حفظ الاسم</button>
+  <div class="tap-field" style="cursor:default; justify-content:center; margin-bottom:10px;" id="syncStatusBadge">—</div>
+  <button class="big-btn ghost" id="syncNowBtn">${icon('upload')} مزامنة الآن</button>
+
+  <div class="section-title">نسخة احتياطية يدوية (ملف)</div>
+  <div class="hint" style="line-height:1.8; margin-bottom:16px;">
+    بإمكانك أيضًا تنزيل نسخة كملف على جهازك كطريقة إضافية للحفظ، بغض النظر عن المزامنة السحابية.
+  </div>
+  <button class="big-btn ghost" id="exportBtn">${icon('download')} تنزيل نسخة احتياطية الآن</button>
+  <button class="big-btn ghost" id="importBtn" style="margin-top:10px">${icon('upload')} استعادة من نسخة احتياطية</button>
+  <input type="file" id="importFile" accept="application/json" style="display:none">
+  <div class="hint" style="margin-top:14px; margin-bottom:22px; text-align:center;">الاستعادة تستبدل كل البيانات الحالية بالنسخة اللي تختارها</div>
+
+  <button class="big-btn danger" id="logoutBtn">${icon('back')} تسجيل الخروج</button>
+  `;
+}
+
+function settingsTabTheme(){
+  const pref = getThemePref();
+  return `
+  <div class="section-title" style="margin-top:0">مظهر التطبيق</div>
+  <div class="hint" style="line-height:1.8; margin-bottom:16px;">اختر شكل الألوان اللي يناسبك.</div>
+  <div class="segmented" style="margin-bottom:16px;">
+    <div class="seg ${pref==='light'?'active':''}" data-theme-pref="light">نهاري</div>
+    <div class="seg ${pref==='dark'?'active':''}" data-theme-pref="dark">ليلي</div>
+    <div class="seg ${pref==='auto'?'active':''}" data-theme-pref="auto">تلقائي</div>
+  </div>
+  <div class="hint">"تلقائي" يتبع إعداد جوالك (نهاري/ليلي) ويتغيّر معه لحاله.</div>
+  `;
+}
+
+function settingsTabSubscription(){
+  const daysLeft = subscriptionExpiresAt ? Math.ceil((subscriptionExpiresAt-Date.now())/(24*60*60*1000)) : null;
+  return `
+  <div class="section-title" style="margin-top:0">الاشتراك</div>
+  ${daysLeft!==null ? `
+  <div class="stat-card ${daysLeft<=2?'red':'gold'}" style="padding:14px 16px; margin-bottom:16px;">
+    <div class="lbl">${daysLeft>0?'الوقت المتبقي على اشتراكك':'انتهى اشتراكك'}</div>
+    <div class="val" style="font-size:18px; margin-top:4px;">${daysLeft>0?daysLeft+' يوم':'منتهي'}</div>
+  </div>` : `<div class="hint" style="margin-bottom:16px;">ما فيه معلومات اشتراك بعد.</div>`}
+  <div class="stat-card gold" style="padding:16px; margin-bottom:14px;">
+    <div class="lbl">قيمة الاشتراك</div>
+    <div class="val" style="font-size:17px; margin-top:6px;">${SUBSCRIPTION_PRICE_LABEL}</div>
+  </div>
+  <div class="stat-card" style="padding:16px; margin-bottom:16px; background:var(--surface-2); border:1px solid var(--line);">
+    <div class="lbl">التحويل عبر شام كاش إلى</div>
+    <div style="display:flex; justify-content:center; margin:12px 0;">
+      <img src="shamcash-qr.png" alt="رمز شام كاش" style="width:160px; height:auto; border-radius:12px; border:1px solid var(--line);">
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+      <div class="val" style="font-size:14px; color:var(--gold-soft); direction:ltr; flex:1; word-break:break-all;">${SHAMCASH_ACCOUNT}</div>
+      <div class="icon-btn" id="copyShamCashBtn2" title="نسخ">${icon('copy')}</div>
+    </div>
+  </div>
+  ${CONTACT_WHATSAPP ? `<a href="https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent('السلام عليكم، أبي أجدد/أستفسر عن اشتراك اجار. بريدي: '+(authUser?authUser.email:''))}" target="_blank" style="text-decoration:none;">
+    <button class="big-btn">${icon('phone')} تواصل لتجديد الاشتراك</button>
+  </a>` : ''}
+  `;
+}
+
+function settingsTabAbout(){
+  return `
+  <div class="section-title" style="margin-top:0">حول التطبيق</div>
+  <div class="hint" style="margin-bottom:16px;">اجار — إدارة تأجير العقارات والمركبات</div>
+  <button class="big-btn ghost" id="rateAppBtn" style="margin-bottom:10px;">${icon('gauge')} قيّم التطبيق</button>
+  <button class="big-btn ghost" id="shareAppBtn" style="margin-bottom:10px;">${icon('upload')} شارك التطبيق</button>
+  <button class="big-btn ghost" id="checkUpdateBtn" style="margin-bottom:10px;">${icon('download')} تحقق من وجود تحديث</button>
+  <button class="big-btn ghost" id="viewTermsBtn2" style="margin-bottom:10px;">سياسة الخصوصية والشروط</button>
+  <div class="hint" style="text-align:center; margin-top:22px; opacity:.6; font-size:11px;">تطوير Nour Ali</div>
+  `;
+}
+
+function settingsTabContact(){
+  return `
+  <div class="section-title" style="margin-top:0">تواصل مع المطوّر</div>
+  <div class="hint" style="margin-bottom:16px; line-height:1.8;">لأي استفسار تقني أو اقتراح تحسين، تواصل مباشرة.</div>
+  ${CONTACT_WHATSAPP ? `<a href="https://wa.me/${CONTACT_WHATSAPP}" target="_blank" style="text-decoration:none;">
+    <button class="big-btn">${icon('phone')} تواصل عبر واتساب</button>
+  </a>` : `<div class="hint">رقم التواصل غير مضاف بعد.</div>`}
+
+  <div class="section-title">الحسابات المرتبطة</div>
+  <div class="hint" style="line-height:1.9;">
+    حسابك يشتغل بنظام بريد وكلمة مرور مشتركة: تعطي نفس البريد وكلمة المرور لموظفينك، وكل واحد يحدّد صلاحيته بنفسه وقت الدخول (مالك بالـPIN، أو موظف للحجز فقط). ما فيه حسابات منفصلة لكل شخص حاليًا — كلهم يشتغلون على نفس حساب المحل.
+  </div>
+  `;
+}
+
+function screenSettingsMenu(){
+  const ITEMS = [
+    ['settings-account','الحساب','user'],
+    ['settings-theme','المظهر','moon'],
+    ['settings-subscription','الاشتراك','wallet'],
+    ['settings-notifications','الإشعارات','bell'],
+    ['settings-about','حول التطبيق','info'],
+    ['settings-contact','تواصل مع المطوّر','phone'],
+  ];
+  return `
+  <div class="settings-menu">
+    ${ITEMS.map(([view,label,ic])=>`
+      <div class="settings-menu-item" data-settings-goto="${view}">
+        <div class="settings-menu-icon">${icon(ic)}</div>
+        <div style="flex:1; font-weight:700; font-size:14px;">${label}</div>
+        ${icon('chevronL')}
+      </div>`).join('')}
+  </div>
+  ${(()=>{
+    if(!subscriptionExpiresAt) return '';
+    const msLeft = subscriptionExpiresAt - Date.now();
+    const d = Math.max(0, Math.floor(msLeft/(24*60*60*1000)));
+    const h = Math.max(0, Math.floor((msLeft%(24*60*60*1000))/(60*60*1000)));
+    return `<div style="text-align:center; margin-top:22px;">
+      <div style="font-size:11.5px; color:var(--gold-soft); font-weight:700;">الوقت المتبقي للاشتراك: ${d} يوم و ${h} ساعة</div>
+      <div style="font-size:11px; color:var(--cream-dim); margin-top:7px; opacity:.7;">تطوير Nour Ali</div>
+    </div>`;
+  })()}
+  `;
+}
+
+/* ============================= EVENTS PER SCREEN ============================= */
+function bindUnitListEvents(){
+  document.querySelectorAll('[data-unit]').forEach(el=> el.onclick=()=>go('unit',{unitId:el.dataset.unit}));
+  document.querySelectorAll('[data-edit-unit]').forEach(el=> el.onclick=(ev)=>{ ev.stopPropagation(); openUnitForm({editId:el.dataset.editUnit}); });
+  document.querySelectorAll('[data-del-unit]').forEach(el=> el.onclick=(ev)=>{ ev.stopPropagation(); confirmDeleteUnit(el.dataset.delUnit); });
+}
+
+function bindScreenEvents(){
+  document.querySelectorAll('[data-cat]').forEach(el=> el.onclick=()=>go('category',{catId:el.dataset.cat}));
+  document.querySelectorAll('[data-nav]').forEach(el=> el.onclick=()=>go(el.dataset.nav));
+  bindUnitListEvents();
+
+  const addUnitBtn = document.getElementById('addUnitBtn');
+  if(addUnitBtn) addUnitBtn.onclick = ()=> openUnitForm({catId: state.catId});
+
+  const unitSearch = document.getElementById('unitSearch');
+  if(unitSearch){
+    unitSearch.oninput = ()=>{
+      const q = unitSearch.value.trim();
+      const list = unitsOf(state.catId).filter(u=>u.name.includes(q) || u.loc.includes(q));
+      document.getElementById('unitList').innerHTML = renderUnitList(list);
+      bindUnitListEvents();
+    };
+  }
+
+  const prevM = document.getElementById('prevMonth'), nextM = document.getElementById('nextMonth');
+  if(prevM) prevM.onclick = ()=>{ let m=state.calMonth-1, y=state.calYear; if(m<1){m=12;y--;} go('unit',{calMonth:m, calYear:y}); };
+  if(nextM) nextM.onclick = ()=>{ let m=state.calMonth+1, y=state.calYear; if(m>12){m=1;y++;} go('unit',{calMonth:m, calYear:y}); };
+
+  document.querySelectorAll('.day[data-date]').forEach(el=>{
+    el.onclick = ()=>{
+      const date = el.dataset.date;
+      const b = bookingOnDate(state.unitId, date);
+      if(b) openDayDetail(b);
+      else openBookingForm({unitId:state.unitId, date});
+    };
+  });
+
+  const goRevenue = document.getElementById('goRevenue');
+  if(goRevenue) goRevenue.onclick = ()=> go('revenue', {unitId:state.unitId});
+
+  const addExpenseBtn = document.getElementById('addExpenseBtn');
+  if(addExpenseBtn) addExpenseBtn.onclick = ()=> openExpenseForm(state.unitId);
+
+  document.querySelectorAll('[data-mode]').forEach(el=>{
+    el.onclick = ()=>{
+      state.revenueMode = el.dataset.mode;
+      state.revenueAnchor = todayStr();
+      renderScreen();
+    };
+  });
+  const prevPeriod = document.getElementById('prevPeriod');
+  if(prevPeriod) prevPeriod.onclick = ()=>{ shiftRevenueAnchor(-1); renderScreen(); };
+  const nextPeriod = document.getElementById('nextPeriod');
+  if(nextPeriod) nextPeriod.onclick = ()=>{ shiftRevenueAnchor(1); renderScreen(); };
+  document.querySelectorAll('[data-open-booking]').forEach(el=>{
+    el.onclick = (ev)=>{
+      if(ev.target.closest('[data-settle],[data-unsettle]')) return;
+      const b = BOOKINGS.find(x=>x.id===el.dataset.openBooking);
+      if(b) openDayDetail(b);
+    };
+  });
+  document.querySelectorAll('[data-edit-expense]').forEach(el=>{
+    el.onclick = ()=> openExpenseForm(state.unitId, el.dataset.editExpense);
+  });
+  document.querySelectorAll('[data-del-expense]').forEach(el=>{
+    el.onclick = ()=> deleteExpense(el.dataset.delExpense);
+  });
+
+  document.querySelectorAll('[data-settle]').forEach(el=>{
+    el.onclick = ()=>{ settleBooking(el.dataset.settle); };
+  });
+  document.querySelectorAll('[data-unsettle]').forEach(el=>{
+    el.onclick = ()=>{ unsettleBooking(el.dataset.unsettle); };
+  });
+
+  const searchInput = document.getElementById('searchInput');
+  if(searchInput){
+    searchInput.oninput = ()=>{ state.searchQ = searchInput.value; renderScreen(); setTimeout(()=>{ const i=document.getElementById('searchInput'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length);} },0); };
+  }
+  document.querySelectorAll('[data-filter]').forEach(el=> el.onclick=()=>{ state.searchFilter=el.dataset.filter; renderScreen(); });
+  document.querySelectorAll('[data-goto]').forEach(el=>{
+    el.onclick = ()=>{
+      const [unitId,date] = el.dataset.goto.split('|');
+      const u = unitById(unitId);
+      go('unit',{unitId, calYear:+date.slice(0,4), calMonth:+date.slice(5,7)});
+      setTimeout(()=>{ const b=bookingOnDate(unitId,date); if(b) openDayDetail(b); },50);
+    };
+  });
+  document.querySelectorAll('[data-goto-unit]').forEach(el=>{
+    el.onclick = ()=>{
+      go('unit',{unitId: el.dataset.gotoUnit, calYear:new Date().getFullYear(), calMonth:new Date().getMonth()+1});
+    };
+  });
+
+  const notifMaster = document.getElementById('notifMaster');
+  if(notifMaster) notifMaster.onclick = ()=>{
+    NOTIF.enabled=!NOTIF.enabled;
+    if(NOTIF.enabled && 'Notification' in window && Notification.permission==='default'){
+      Notification.requestPermission();
+    }
+    scheduleCloudSync();
+    refreshSettingsOrScreen();
+  };
+  const testNotifBtn = document.getElementById('testNotifBtn');
+  if(testNotifBtn) testNotifBtn.onclick = async ()=>{
+    if(!('Notification' in window)){ toast('المتصفح ما يدعم الإشعارات'); return; }
+    if(Notification.permission==='default'){
+      const res = await Notification.requestPermission();
+      if(res!=='granted'){ toast('لازم توافق على إذن الإشعارات من الجوال عشان تشتغل'); refreshSettingsOrScreen(); return; }
+    }
+    if(Notification.permission==='denied'){
+      toast('الإذن ممنوع — روح إعدادات الجوال ← التطبيقات ← اجار ← الإشعارات وفعّله يدويًا');
+      return;
+    }
+    playBeep();
+    const ok = await showAppNotification('تجربة تنبيه اجار', {body:'إذا شفت هذا وسمعت صوت، الإشعارات شغّالة تمام ✔', icon:'icon-192.png'});
+    if(!ok) toast('صار خطأ بعرض الإشعار — جرب تسكّر التطبيق وتفتحه من جديد');
+    refreshSettingsOrScreen();
+  };
+  document.querySelectorAll('[data-ci-preset]').forEach(el=>{
+    el.onclick = ()=>{ NOTIF.beforeCheckin = Number(el.dataset.ciPreset); scheduleCloudSync(); refreshSettingsOrScreen(); };
+  });
+  document.querySelectorAll('[data-co-preset]').forEach(el=>{
+    el.onclick = ()=>{ NOTIF.beforeCheckout = Number(el.dataset.coPreset); scheduleCloudSync(); refreshSettingsOrScreen(); };
+  });
+
+  const exportBtn = document.getElementById('exportBtn');
+  if(exportBtn) exportBtn.onclick = exportBackup;
+
+  const saveNameBtn = document.getElementById('saveNameBtn');
+  if(saveNameBtn) saveNameBtn.onclick = ()=>{
+    const nameInput = document.getElementById('userNameInput');
+    setUserName(nameInput ? nameInput.value.trim() : '');
+    toast('تم حفظ اسمك');
+    scheduleCloudSync();
+  };
+  const logoutBtn = document.getElementById('logoutBtn');
+  if(logoutBtn) logoutBtn.onclick = logOut;
+  const syncNowBtn = document.getElementById('syncNowBtn');
+  if(syncNowBtn) syncNowBtn.onclick = async ()=>{
+    syncStatus='syncing'; refreshSyncBadge();
+    await pushToCloud();
+    toast(syncStatus==='synced' ? 'تمت المزامنة' : 'تعذر الاتصال، حاول لاحقًا');
+  };
+  refreshSyncBadge();
+
+  document.querySelectorAll('[data-theme-pref]').forEach(el=>{
+    el.onclick = ()=>{ setThemePref(el.dataset.themePref); refreshSettingsOrScreen(); };
+  });
+  const copyShamCashBtn2 = document.getElementById('copyShamCashBtn2');
+  if(copyShamCashBtn2) copyShamCashBtn2.onclick = ()=> copyToClipboard(SHAMCASH_ACCOUNT, 'تم نسخ رقم الحساب');
+  const rateAppBtn = document.getElementById('rateAppBtn');
+  if(rateAppBtn) rateAppBtn.onclick = ()=>{
+    if(PLAY_STORE_URL) window.open(PLAY_STORE_URL, '_blank');
+    else toast('التطبيق لسا ما نُشر على المتجر — بنفعّل هذا الزر أول ما ننشره');
+  };
+  const shareAppBtn = document.getElementById('shareAppBtn');
+  if(shareAppBtn) shareAppBtn.onclick = async ()=>{
+    const shareData = {title:'اجار', text:'تطبيق اجار لإدارة تأجير العقارات والمركبات', url: location.href};
+    try{
+      if(navigator.share){ await navigator.share(shareData); }
+      else { await copyToClipboard(location.href, 'تم نسخ رابط التطبيق — شاركه مع اللي تحب'); }
+    }catch(e){ /* user cancelled share sheet — no-op */ }
+  };
+  const checkUpdateBtn = document.getElementById('checkUpdateBtn');
+  if(checkUpdateBtn) checkUpdateBtn.onclick = async ()=>{
+    toast('جاري التحقق من وجود تحديث...');
+    try{
+      if('serviceWorker' in navigator){
+        const reg = await navigator.serviceWorker.getRegistration();
+        if(reg) await reg.update();
+      }
+    }catch(e){}
+    setTimeout(()=>{ location.reload(); }, 600);
+  };
+  const viewTermsBtn2 = document.getElementById('viewTermsBtn2');
+  if(viewTermsBtn2) viewTermsBtn2.onclick = ()=> openModal({type:'terms'});
+
+  const importBtn = document.getElementById('importBtn');
+  const importFile = document.getElementById('importFile');
+  if(importBtn && importFile){
+    importBtn.onclick = ()=> importFile.click();
+    importFile.onchange = (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const data = JSON.parse(reader.result);
+          if(!Array.isArray(data.UNITS) || !Array.isArray(data.BOOKINGS)){
+            toast('هذا الملف مو نسخة احتياطية صحيحة');
+            return;
+          }
+          UNITS = data.UNITS;
+          BOOKINGS = data.BOOKINGS;
+          EXPENSES = Array.isArray(data.EXPENSES) ? data.EXPENSES : [];
+          if(data.NOTIF) NOTIF = data.NOTIF;
+          if(typeof data.unitSeq==='number') unitSeq = data.unitSeq;
+          if(typeof data.idSeq==='number') idSeq = data.idSeq;
+          pinnedUnitId = data.pinnedUnitId || null;
+          saveState();
+          toast('تم استعادة البيانات بنجاح');
+          if(settingsDrawerOpen) closeSettingsDrawer();
+          go('home');
+        }catch(err){
+          toast('تعذّرت قراءة الملف — تأكد إنه نسخة احتياطية صحيحة');
+        }
+      };
+      reader.readAsText(file);
+    };
+  }
+}
+
+function exportBackup(){
+  const data = {UNITS, BOOKINGS, EXPENSES, NOTIF, unitSeq, idSeq, pinnedUnitId, exportedAt: new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = todayStr().replace(/-/g,'');
+  a.href = url;
+  a.download = `ejar-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  toast('جاري تنزيل النسخة الاحتياطية');
+}
+
+function settleBooking(id){
+  const b = BOOKINGS.find(x=>x.id===id);
+  if(b){ b.settled = true; b.settledBy = getUserName()||null; toast('تم تسكير اليوم مع المحاسب'); scheduleCloudSync(); renderScreen(); }
+}
+function unsettleBooking(id){
+  const b = BOOKINGS.find(x=>x.id===id);
+  if(b){ b.settled = false; b.settledBy = null; toast('تم التراجع عن التسكير'); scheduleCloudSync(); renderScreen(); }
+}
+
+/* ============================= MODALS ============================= */
+function renderModal(){
+  const slot = document.getElementById('modal-slot');
+  if(!state.modal){ slot.innerHTML=''; return; }
+  const m = state.modal;
+  if(m.type==='booking') slot.innerHTML = modalBookingForm(m);
+  else if(m.type==='dayDetail') slot.innerHTML = modalDayDetail(m);
+  else if(m.type==='datePicker') slot.innerHTML = modalDatePicker(m);
+  else if(m.type==='timePicker') slot.innerHTML = modalTimePicker(m);
+  else if(m.type==='expense') slot.innerHTML = modalExpenseForm(m);
+  else if(m.type==='unitForm') slot.innerHTML = modalUnitForm(m);
+  else if(m.type==='confirmDeleteUnit') slot.innerHTML = modalConfirmDeleteUnit(m);
+  else if(m.type==='terms') slot.innerHTML = modalTerms(m);
+  bindModalEvents();
+}
+
+const DEFAULT_CHECKIN = '08:00';
+const DEFAULT_CHECKOUT = '22:00';
+function openBookingForm({unitId, date, editId=null}){
+  const existing = editId ? BOOKINGS.find(b=>b.id===editId) : null;
+  openModal({
+    type:'booking', unitId, date: existing?existing.date:date,
+    name: existing?existing.name:'', phone: existing?existing.phone:'',
+    checkin: existing?existing.checkin:DEFAULT_CHECKIN, checkout: existing?existing.checkout:DEFAULT_CHECKOUT,
+    total: existing?existing.total:'', deposit: existing?existing.deposit:'', damageFee: existing?(existing.damageFee||''):'',
+    notes: existing?existing.notes:'', status: existing?existing.status:'rented',
+    editId
+  });
+}
+function openDayDetail(b){ openModal({type:'dayDetail', bookingId:b.id}); }
+function openExpenseForm(unitId, editId=null){
+  const existing = editId ? EXPENSES.find(e=>e.id===editId) : null;
+  openModal({
+    type:'expense', unitId,
+    date: existing?existing.date:todayStr(),
+    desc: existing?existing.desc:'',
+    amount: existing?existing.amount:'',
+    editId
+  });
+}
+function deleteExpense(id){
+  EXPENSES = EXPENSES.filter(e=>e.id!==id);
+  toast('تم حذف المصروف');
+  scheduleCloudSync();
+  renderScreen();
+}
+
+function openUnitForm({catId, editId=null}){
+  const existing = editId ? unitById(editId) : null;
+  openModal({
+    type:'unitForm',
+    catId: existing ? existing.cat : catId,
+    name: existing ? existing.name : '',
+    loc: existing ? existing.loc : '',
+    plate: existing ? (existing.plate||'') : '',
+    editId
+  });
+}
+function confirmDeleteUnit(unitId){
+  const u = unitById(unitId);
+  openModal({type:'confirmDeleteUnit', unitId, name:u.name});
+}
+
+function modalBookingForm(m){
+  const u = unitById(m.unitId);
+  const isCar = u.cat==='cars';
+  const remain = (Number(m.total)||0) + (Number(m.damageFee)||0) - (Number(m.deposit)||0);
+  return `
+  <div class="scrim" id="scrim">
+    <div class="sheet" style="max-height:92%">
+      <div class="grabber"></div>
+      <div class="sheet-head"><h3>${m.editId?'تعديل الحجز':'إضافة حجز جديد'}</h3>
+        <div class="icon-btn" id="closeModal">${icon('back')}</div>
+      </div>
+      <div class="sheet-body">
+        ${isCar?`<div class="field"><label>السيارة</label><div class="tap-field" style="cursor:default">${icon('car2')}<span>${u.name}${u.plate?' · '+u.plate:''}</span></div></div>`:''}
+        <div class="row2">
+          <div class="field">
+            <label>التاريخ</label>
+            <div class="tap-field" id="pickDate">${icon('calendar')}<span>${m.date.split('-').reverse().join('/')}</span></div>
+          </div>
+          <div class="field">
+            <label>الحالة</label>
+            <div class="segmented">
+              <div class="seg ${m.status==='rented'?'active':''}" data-status="rented">مؤجر</div>
+              <div class="seg ${m.status==='prelim'?'active':''}" data-status="prelim">حجز مبدئي</div>
+            </div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>ساعة الاستلام (دخول)</label>
+            <div class="tap-field" id="pickCheckin">${icon('clock')}<span>${m.checkin||'اختر الساعة'}</span></div>
+          </div>
+          <div class="field">
+            <label>ساعة التسليم (خروج)</label>
+            <div class="tap-field" id="pickCheckout">${icon('clock')}<span>${m.checkout||'اختر الساعة'}</span></div>
+          </div>
+        </div>
+        <div class="field"><label>اسم المستأجر</label><input type="text" id="fName" value="${m.name}" placeholder="مثال: محمد العنزي"></div>
+        <div class="field"><label>رقم الجوال</label><input type="tel" id="fPhone" value="${m.phone}" placeholder="05xxxxxxxx"></div>
+        <div class="row2">
+          <div class="field"><label>السعر الكلي</label><input type="number" id="fTotal" value="${m.total}" placeholder="0"></div>
+          <div class="field"><label>الدفعة الأولى</label><input type="number" id="fDeposit" value="${m.deposit}" placeholder="0"></div>
+        </div>
+        <div class="field">
+          <label>تعويض أضرار (إن وجد)</label>
+          <input type="number" id="fDamage" value="${m.damageFee||''}" placeholder="0 — كسر أو تلف يتحمّله المستأجر">
+          <div class="hint" style="margin-top:5px;">يُضاف تلقائيًا فوق السعر الكلي، وما يأثر على سعر الإيجار الأساسي</div>
+        </div>
+        <div class="field">
+          <label>المبلغ المتبقي</label>
+          <div class="tap-field" style="cursor:default; color:var(--gold-soft)"><span id="remainVal">${fmtMoney(remain)}</span>${icon('wallet')}</div>
+        </div>
+        <div class="field"><label>ملاحظات</label><textarea id="fNotes" placeholder="أي ملاحظات إضافية...">${m.notes}</textarea></div>
+      </div>
+      <div class="sheet-actions">
+        <button class="big-btn" id="saveBooking">${icon('check')} حفظ الحجز</button>
+        <button class="big-btn ghost" id="cancelBooking">إلغاء</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalDayDetail(m){
+  const b = BOOKINGS.find(x=>x.id===m.bookingId);
+  const u = unitById(b.unitId);
+  const st = dayStatus(b);
+  const label = st==='settled'?'مسكّر مع المحاسب':st==='rented'?'مؤجر':'حجز مبدئي';
+  return `
+  <div class="scrim" id="scrim">
+    <div class="sheet">
+      <div class="grabber"></div>
+      <div class="sheet-head"><h3>${b.date.split('-').reverse().join('/')} — ${label}</h3>
+        <div class="icon-btn" id="closeModal">${icon('back')}</div>
+      </div>
+      <div class="sheet-body">
+        <table class="table">
+          <tr><th>الوحدة</th><td colspan="1">${u.name}</td></tr>
+          <tr><th>المستأجر</th><td>${b.name||'—'}</td></tr>
+          <tr><th>الجوال</th><td>${b.phone||'—'}</td></tr>
+          ${u.cat==='cars'?`<tr><th>رقم اللوحة</th><td>${u.plate||'—'}</td></tr>`:''}
+          <tr><th>الاستلام</th><td>${b.checkin||'—'}</td></tr>
+          <tr><th>التسليم</th><td>${b.checkout||'—'}</td></tr>
+          <tr><th>سعر الإيجار</th><td>${fmtMoney(b.total)}</td></tr>
+          ${b.damageFee?`<tr><th>تعويض أضرار</th><td style="color:#ec8179;">${fmtMoney(b.damageFee)}</td></tr>`:''}
+          <tr><th>الإجمالي المطلوب</th><td>${fmtMoney(grandTotal(b))}</td></tr>
+          <tr><th>المدفوع</th><td>${fmtMoney(b.deposit)}</td></tr>
+          <tr><th>المتبقي</th><td>${fmtMoney(remainingAmt(b))}</td></tr>
+          ${b.notes?`<tr><th>ملاحظات</th><td>${b.notes}</td></tr>`:''}
+          ${b.createdBy?`<tr><th>أنشأه</th><td>${b.createdBy}</td></tr>`:''}
+          ${b.settled && b.settledBy?`<tr><th>سكّره</th><td>${b.settledBy}</td></tr>`:''}
+        </table>
+      </div>
+      <div class="sheet-actions">
+        ${isOwnerMode ? `
+          ${!b.settled?`<button class="big-btn blueish" id="settleBtn">${icon('bank')} تسكير هذا اليوم مع المحاسب</button>`:
+            `<button class="big-btn ghost" id="unsettleBtn">${icon('back')} تراجع عن التسكير</button>`}
+          <button class="big-btn ghost" id="editBtn">${icon('edit')} تعديل</button>
+          <button class="big-btn danger" id="deleteBtn">${icon('trash')} حذف الحجز</button>
+        ` : `<div class="hint" style="text-align:center; padding:6px 0;">وضع الموظف: عرض فقط — التعديل والحذف والتسكير للمالك فقط</div>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalDatePicker(m){
+  const [dy,dm,dd] = m.date.split('-').map(Number);
+  const y=m.py||dy, mo=m.pm||dm;
+  const dim = daysInMonth(y,mo);
+  const startIdx = weekdayIndexSat(y,mo,1);
+  let cells='';
+  for(let i=0;i<startIdx;i++) cells+=`<div class="day empty-cell"></div>`;
+  for(let d=1; d<=dim; d++){
+    const date = ymd(y,mo,d);
+    const isSel = date===m.date;
+    cells += `<div class="day ${isSel?'sel':''}" data-pickdate="${date}"><span>${d}</span></div>`;
+  }
+  return `
+  <div class="scrim" id="scrim">
+    <div class="sheet">
+      <div class="grabber"></div>
+      <div class="sheet-head"><h3>اختر التاريخ</h3><div class="icon-btn" id="closeModal">${icon('back')}</div></div>
+      <div class="sheet-body mini-cal">
+        <div class="month-nav">
+          <div class="marrow" id="pdPrev">${icon('arrowR')}</div>
+          <div class="mtitle" style="font-size:16px">${pad(mo)} / ${y}</div>
+          <div class="marrow" id="pdNext">${icon('arrowL')}</div>
+        </div>
+        <div class="weekdays"><span>سبت</span><span>أحد</span><span>إثن</span><span>ثلا</span><span>أرب</span><span>خمي</span><span>جمع</span></div>
+        <div class="daysgrid">${cells}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalTimePicker(m){
+  // m.field: 'checkin'|'checkout', m.value: 'HH:MM', m.step: 'hour'|'minute', m.hour12, m.ampm, m.minute
+  const hourMarks = [];
+  for(let i=1;i<=12;i++){
+    const angle = (i%12)*30 - 90; // 12 at top
+    const rad = angle*Math.PI/180;
+    const r = 92;
+    const x = 115 + r*Math.cos(rad), yv = 115 + r*Math.sin(rad);
+    const active = m.step==='hour' && m.hour12===i;
+    hourMarks.push(`<div class="clock-num ${active?'active':''}" style="left:${x}px; top:${yv}px" data-hour="${i}">${i}</div>`);
+  }
+  const minMarks = [];
+  for(let i=0;i<12;i++){
+    const val = i*5;
+    const angle = i*30 - 90;
+    const rad = angle*Math.PI/180;
+    const r = 92;
+    const x = 115 + r*Math.cos(rad), yv = 115 + r*Math.sin(rad);
+    const active = m.step==='minute' && m.minute===val;
+    minMarks.push(`<div class="clock-num ${active?'active':''}" style="left:${x}px; top:${yv}px" data-minute="${val}">${pad(val)}</div>`);
+  }
+  const readout = `${pad(m.hour12===12?12:m.hour12)}:${pad(m.minute)} ${m.ampm}`;
+  return `
+  <div class="scrim" id="scrim">
+    <div class="sheet">
+      <div class="grabber"></div>
+      <div class="sheet-head"><h3>${m.field==='checkin'?'ساعة الاستلام':'ساعة التسليم'}</h3><div class="icon-btn" id="closeModal">${icon('back')}</div></div>
+      <div class="sheet-body">
+        <div class="clock-wrap">
+          <div class="clock-readout">${readout}</div>
+          <div class="clock-step-label">${m.step==='hour'?'اختر الساعة':'اختر الدقيقة'}</div>
+          <div class="clock-face">
+            ${m.step==='hour'?hourMarks.join(''):minMarks.join('')}
+            <div class="clock-center"></div>
+          </div>
+          <div class="ampm-toggle">
+            <div class="a ${m.ampm==='ص'?'active':''}" data-ampm="ص">ص</div>
+            <div class="a ${m.ampm==='م'?'active':''}" data-ampm="م">م</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalExpenseForm(m){
+  return `
+  <div class="scrim" id="scrim">
+    <div class="sheet">
+      <div class="grabber"></div>
+      <div class="sheet-head"><h3>${m.editId?'تعديل المصروف':'إضافة مصروف'}</h3><div class="icon-btn" id="closeModal">${icon('back')}</div></div>
+      <div class="sheet-body">
+        <div class="field">
+          <label>التاريخ</label>
+          <div class="tap-field" id="pickExpDate">${icon('calendar')}<span>${m.date.split('-').reverse().join('/')}</span></div>
+        </div>
+        <div class="field"><label>البيان</label><input type="text" id="expDesc" value="${m.desc}" placeholder="مثال: صيانة، تنظيف..."></div>
+        <div class="field"><label>المبلغ</label><input type="number" id="expAmount" value="${m.amount}" placeholder="0"></div>
+      </div>
+      <div class="sheet-actions">
+        <button class="big-btn" id="saveExpense">${icon('check')} حفظ المصروف</button>
+        <button class="big-btn ghost" id="cancelExpense">إلغاء</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalUnitForm(m){
+  const singular = catSingular[m.catId] || 'وحدة';
+  const isCar = m.catId==='cars';
+  return `
+  <div class="scrim" id="scrim">
+    <div class="sheet">
+      <div class="grabber"></div>
+      <div class="sheet-head"><h3>${m.editId? 'تعديل '+singular : 'إضافة '+singular+' جديدة'}</h3><div class="icon-btn" id="closeModal">${icon('back')}</div></div>
+      <div class="sheet-body">
+        <div class="field"><label>الاسم</label><input type="text" id="uName" value="${m.name}" placeholder="مثال: ${singular} الواحة"></div>
+        ${isCar?`<div class="field"><label>رقم اللوحة</label><input type="text" id="uPlate" value="${m.plate||''}" placeholder="أ ب ج 1234"></div>`:''}
+        <div class="field"><label>الموقع / الوصف</label><input type="text" id="uLoc" value="${m.loc}" placeholder="مثال: حي النرجس"></div>
+      </div>
+      <div class="sheet-actions">
+        <button class="big-btn" id="saveUnit">${icon('check')} حفظ</button>
+        <button class="big-btn ghost" id="cancelUnit">إلغاء</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalConfirmDeleteUnit(m){
+  return `
+  <div class="scrim" id="scrim">
+    <div class="sheet" style="max-height:44%">
+      <div class="grabber"></div>
+      <div class="sheet-head"><h3>حذف ${m.name}؟</h3><div class="icon-btn" id="closeModal">${icon('back')}</div></div>
+      <div class="sheet-body">
+        <div class="hint" style="font-size:13px; line-height:1.7;">سيتم حذف هذه الوحدة مع كل حجوزاتها ومصاريفها المسجلة نهائيًا، ولا يمكن التراجع عن هذا الإجراء.</div>
+      </div>
+      <div class="sheet-actions">
+        <button class="big-btn danger" id="confirmDeleteUnitBtn">${icon('trash')} حذف نهائيًا</button>
+        <button class="big-btn ghost" id="cancelDeleteUnitBtn">إلغاء</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalTerms(m){
+  return `
+  <div class="scrim" id="scrim">
+    <div class="sheet" style="max-height:85%">
+      <div class="grabber"></div>
+      <div class="sheet-head"><h3>الشروط وسياسة الخصوصية</h3><div class="icon-btn" id="closeModal">${icon('back')}</div></div>
+      <div class="sheet-body" style="font-size:12.5px; line-height:2; color:var(--cream-dim);">
+        <div class="hint" style="background:var(--surface-3); padding:10px; border-radius:10px; margin-bottom:14px; color:var(--cream);">
+          هذي مسودة أولية عامة، ما تعتبر استشارة قانونية رسمية. يُفضّل مراجعتها من محامٍ قبل الإطلاق التجاري الكامل.
+        </div>
+        <b style="color:var(--cream);">١. طبيعة الخدمة</b><br>
+        اجار تطبيق لإدارة تأجير العقارات والمركبات (الحجوزات، الإيرادات، المصاريف). المستخدم مسؤول عن صحة البيانات اللي يدخلها.<br><br>
+        <b style="color:var(--cream);">٢. الحساب والاشتراك</b><br>
+        كل حساب يبدأ بفترة تجريبية مجانية، وبعدها يتطلب اشتراك مدفوع لمتابعة الاستخدام. المستخدم مسؤول عن سرية بيانات الدخول الخاصة فيه.<br><br>
+        <b style="color:var(--cream);">٣. البيانات والخصوصية</b><br>
+        بياناتك (الحجوزات، العملاء، المصاريف) تُخزَّن على خدمة Firebase من Google، وما تُشارك مع أي طرف ثالث آخر. المطوّر لا يطّلع على بياناتك إلا بالحدود اللازمة لدعم فني إذا طلبت ذلك.<br><br>
+        <b style="color:var(--cream);">٤. المسؤولية</b><br>
+        التطبيق يُقدَّم "كما هو" بدون أي ضمانات. المطوّر غير مسؤول عن أي خسارة مالية أو نزاع تجاري ينتج عن استخدام التطبيق أو انقطاعه.<br><br>
+        <b style="color:var(--cream);">٥. التواصل</b><br>
+        لأي استفسار يخص الخصوصية أو الاشتراك، تواصل مباشرة مع مزوّد التطبيق.
+      </div>
+      <div class="sheet-actions">
+        <button class="big-btn" id="closeTermsBtn">فهمت</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================= MODAL EVENTS ============================= */
+function bindModalEvents(){
+  const scrim = document.getElementById('scrim');
+  if(!scrim) return;
+  const closeBtn = document.getElementById('closeModal');
+  if(closeBtn) closeBtn.onclick = closeModal;
+
+  const m = state.modal;
+
+  /* ---- booking form ---- */
+  if(m.type==='booking'){
+    document.getElementById('pickDate').onclick = ()=>{
+      const [y,mo] = m.date.split('-').map(Number);
+      openModal({...m, __back:'booking', type:'datePicker', py:y, pm:mo});
+    };
+    document.getElementById('pickCheckin').onclick = ()=> openTimePickerFor(m,'checkin');
+    document.getElementById('pickCheckout').onclick = ()=> openTimePickerFor(m,'checkout');
+    document.querySelectorAll('[data-status]').forEach(el=>{
+      el.onclick = ()=>{ openModal({...m, status:el.dataset.status}); };
+    });
+    ['fName','fPhone','fNotes'].forEach(id=>{
+      const el = document.getElementById(id); if(!el) return;
+      el.oninput = ()=>{ m[id.replace('f','').toLowerCase()] = el.value; };
+    });
+    const fTotal = document.getElementById('fTotal'), fDeposit = document.getElementById('fDeposit'), fDamage = document.getElementById('fDamage');
+    function recompute(){
+      m.total = fTotal.value; m.deposit = fDeposit.value; m.damageFee = fDamage.value;
+      const remain = (Number(m.total)||0) + (Number(m.damageFee)||0) - (Number(m.deposit)||0);
+      document.getElementById('remainVal').textContent = fmtMoney(remain) + '';
+    }
+    fTotal.oninput = recompute; fDeposit.oninput = recompute; fDamage.oninput = recompute;
+    // ensure field scrolls above the keyboard area instead of being hidden
+    [fTotal, fDeposit, fDamage].forEach(el=>{
+      el.addEventListener('focus', ()=>{
+        setTimeout(()=>{ el.scrollIntoView({block:'center', behavior:'smooth'}); }, 120);
+      });
+    });
+    document.getElementById('fName').addEventListener('focus', function(){
+      setTimeout(()=>{ this.scrollIntoView({block:'center', behavior:'smooth'}); }, 120);
+    });
+
+    document.getElementById('saveBooking').onclick = ()=>{
+      const name = document.getElementById('fName').value;
+      const phone = document.getElementById('fPhone').value;
+      const notes = document.getElementById('fNotes').value;
+      const total = Number(document.getElementById('fTotal').value)||0;
+      const deposit = Number(document.getElementById('fDeposit').value)||0;
+      const damageFee = Number(document.getElementById('fDamage').value)||0;
+      const by = getUserName() || null;
+      if(m.editId){
+        const b = BOOKINGS.find(x=>x.id===m.editId);
+        Object.assign(b, {date:m.date, name, phone, checkin:m.checkin, checkout:m.checkout, total, deposit, damageFee, notes, status:m.status, updatedBy:by});
+        toast('تم تحديث الحجز');
+      } else {
+        BOOKINGS.push({id:'b'+(idSeq++), unitId:m.unitId, date:m.date, name, phone, checkin:m.checkin, checkout:m.checkout, total, deposit, damageFee, notes, status:m.status, settled:false, createdBy:by, updatedBy:by});
+        toast('تمت إضافة الحجز');
+      }
+      closeModal(); scheduleCloudSync(); renderScreen();
+    };
+    document.getElementById('cancelBooking').onclick = closeModal;
+  }
+
+  /* ---- day detail ---- */
+  if(m.type==='dayDetail'){
+    const b = BOOKINGS.find(x=>x.id===m.bookingId);
+    const settleBtn = document.getElementById('settleBtn');
+    if(settleBtn) settleBtn.onclick = ()=>{ b.settled=true; b.settledBy=getUserName()||null; toast('تم تسكير اليوم مع المحاسب'); scheduleCloudSync(); closeModal(); renderScreen(); };
+    const unsettleBtn = document.getElementById('unsettleBtn');
+    if(unsettleBtn) unsettleBtn.onclick = ()=>{ b.settled=false; b.settledBy=null; toast('تم التراجع عن التسكير'); scheduleCloudSync(); closeModal(); renderScreen(); };
+    const editBtn = document.getElementById('editBtn');
+    if(editBtn) editBtn.onclick = ()=>{ closeModal(); openBookingForm({unitId:b.unitId, date:b.date, editId:b.id}); };
+    const deleteBtn = document.getElementById('deleteBtn');
+    if(deleteBtn) deleteBtn.onclick = ()=>{
+      BOOKINGS = BOOKINGS.filter(x=>x.id!==b.id);
+      toast('تم حذف الحجز'); scheduleCloudSync(); closeModal(); renderScreen();
+    };
+  }
+
+  /* ---- date picker (immediate select, no confirm) ---- */
+  if(m.type==='datePicker'){
+    document.getElementById('pdPrev').onclick = ()=>{ let mo=m.pm-1,y=m.py; if(mo<1){mo=12;y--;} openModal({...m, py:y, pm:mo}); };
+    document.getElementById('pdNext').onclick = ()=>{ let mo=m.pm+1,y=m.py; if(mo>12){mo=1;y++;} openModal({...m, py:y, pm:mo}); };
+    document.querySelectorAll('[data-pickdate]').forEach(el=>{
+      el.onclick = ()=>{
+        const date = el.dataset.pickdate;
+        if(m.unitId!==undefined && m.date!==undefined && m.name!==undefined){
+          // returning to booking form
+          openModal({...m, type:'booking', date});
+        } else {
+          openModal({...m, type:'expense', date});
+        }
+      };
+    });
+  }
+
+  /* ---- time picker (immediate, two-step, no confirm) ---- */
+  if(m.type==='timePicker'){
+    document.querySelectorAll('[data-hour]').forEach(el=>{
+      el.onclick = ()=>{
+        openModal({...m, hour12:Number(el.dataset.hour), step:'minute'});
+      };
+    });
+    document.querySelectorAll('[data-minute]').forEach(el=>{
+      el.onclick = ()=>{
+        const minute = Number(el.dataset.minute);
+        const hour24 = to24(m.hour12, m.ampm);
+        const val = `${pad(hour24)}:${pad(minute)}`;
+        const booking = m.__bookingState;
+        booking[m.field] = val;
+        closeModal();
+        openModal({...booking, type:'booking'});
+      };
+    });
+    document.querySelectorAll('[data-ampm]').forEach(el=>{
+      el.onclick = ()=>{ openModal({...m, ampm:el.dataset.ampm}); };
+    });
+  }
+
+  /* ---- expense form ---- */
+  if(m.type==='expense'){
+    document.getElementById('pickExpDate').onclick = ()=>{
+      const [y,mo] = m.date.split('-').map(Number);
+      openModal({...m, type:'datePicker', py:y, pm:mo});
+    };
+    document.getElementById('saveExpense').onclick = ()=>{
+      const desc = document.getElementById('expDesc').value;
+      const amount = Number(document.getElementById('expAmount').value)||0;
+      if(!desc){ toast('أدخل بيان المصروف'); return; }
+      if(m.editId){
+        const e = EXPENSES.find(x=>x.id===m.editId);
+        Object.assign(e, {date:m.date, desc, amount});
+        toast('تم تحديث المصروف');
+      } else {
+        EXPENSES.push({id:'e'+(idSeq++), unitId:m.unitId, date:m.date, desc, amount});
+        toast('تمت إضافة المصروف');
+      }
+      closeModal(); scheduleCloudSync(); renderScreen();
+    };
+    document.getElementById('cancelExpense').onclick = closeModal;
+    const amtEl = document.getElementById('expAmount');
+    amtEl.addEventListener('focus', function(){ setTimeout(()=> this.scrollIntoView({block:'center', behavior:'smooth'}), 120); });
+  }
+
+  /* ---- add / edit unit ---- */
+  if(m.type==='unitForm'){
+    const nameEl = document.getElementById('uName');
+    nameEl.addEventListener('focus', function(){ setTimeout(()=> this.scrollIntoView({block:'center', behavior:'smooth'}), 120); });
+    document.getElementById('saveUnit').onclick = ()=>{
+      const name = document.getElementById('uName').value.trim();
+      const loc = document.getElementById('uLoc').value.trim();
+      const plateEl = document.getElementById('uPlate');
+      const plate = plateEl ? plateEl.value.trim() : undefined;
+      if(!name){ toast('أدخل اسم الوحدة'); return; }
+      if(m.editId){
+        const u = unitById(m.editId);
+        u.name = name; u.loc = loc;
+        if(plate!==undefined) u.plate = plate;
+        toast('تم تحديث بيانات الوحدة');
+      } else {
+        const newUnit = {id:'u'+(unitSeq++), cat:m.catId, name, loc};
+        if(plate!==undefined) newUnit.plate = plate;
+        UNITS.push(newUnit);
+        toast('تمت إضافة الوحدة');
+      }
+      closeModal(); scheduleCloudSync(); renderScreen();
+    };
+    document.getElementById('cancelUnit').onclick = closeModal;
+  }
+
+  /* ---- delete unit (custom confirm, no native confirm()) ---- */
+  if(m.type==='confirmDeleteUnit'){
+    document.getElementById('confirmDeleteUnitBtn').onclick = ()=>{
+      UNITS = UNITS.filter(x=>x.id!==m.unitId);
+      BOOKINGS = BOOKINGS.filter(b=>b.unitId!==m.unitId);
+      EXPENSES = EXPENSES.filter(e=>e.unitId!==m.unitId);
+      toast('تم حذف الوحدة');
+      scheduleCloudSync();
+      closeModal(); renderScreen();
+    };
+    document.getElementById('cancelDeleteUnitBtn').onclick = closeModal;
+  }
+
+  if(m.type==='terms'){
+    const closeTermsBtn = document.getElementById('closeTermsBtn');
+    if(closeTermsBtn) closeTermsBtn.onclick = closeModal;
+  }
+}
+
+function openTimePickerFor(bookingState, field){
+  const cur = bookingState[field];
+  let hour24 = 16, minute = 0;
+  if(cur){ [hour24, minute] = cur.split(':').map(Number); }
+  const ampm = hour24>=12 ? 'م' : 'ص';
+  let hour12 = hour24%12; if(hour12===0) hour12=12;
+  openModal({type:'timePicker', field, step:'hour', hour12, minute, ampm, __bookingState: bookingState});
+}
+function to24(hour12, ampm){
+  let h = hour12%12;
+  if(ampm==='م') h += 12;
+  return h;
+}
+
+/* ============================= INIT ============================= */
+loadState();
+if(pinnedUnitId && unitById(pinnedUnitId)){
+  state.view = 'unit';
+  state.unitId = pinnedUnitId;
+  navStack = [{type:'view', view:'unit', extra:{unitId:pinnedUnitId}}];
+}
+
+// Offline-first bootstrap: if we've signed in on this device before, get the person
+// straight into the app using locally-saved data immediately — don't make them wait
+// on (or get blocked by) a network round-trip that might never come.
+const cachedAuth = getCachedAuth();
+if(cachedAuth){
+  authUser = cachedAuth;
+  authReady = true;
+  const unlockState = getOwnerUnlockState(cachedAuth.uid);
+  isOwnerMode = (unlockState==='owner');
+  ownerGateNeeded = (unlockState==='none');
+  if(!ownerGateNeeded) goToInitialScreen();
+}
+
+render();
+const bootSplash = document.getElementById('boot-splash');
+if(bootSplash) bootSplash.remove();
+
+if(cloudDb && typeof firebase!=='undefined'){
+  firebase.auth().onAuthStateChanged(async (user)=>{
+    authUser = user;
+    authReady = true;
+    setCachedAuth(user);
+    if(user){
+      syncStatus = 'syncing';
+      const result = await pullFromCloud(user.uid);
+      const isFreshSignup = result.status==='not-found';
+      if(result.status==='found'){
+        applyCloudData(result.data);
+        accountOwnerPin = result.data.ownerPin || null;
+        lastAppliedUpdatedAt = result.data.updatedAt || Date.now();
+        saveStateLocalOnly();
+      } else if(result.status==='not-found'){
+        accountOwnerPin = pendingSignupOwnerPin || null;
+        subscriptionExpiresAt = Date.now() + TRIAL_DAYS*24*60*60*1000;
+        await pushToCloud();
+      } else {
+        // network/read error — do NOT reset the trial or wipe cloud data.
+        // Keep whatever was already loaded locally (from loadState() at boot)
+        // and let the live listener (below) pick up the real state once connectivity returns.
+        syncStatus = 'error';
+        toast('تعذّر الاتصال بالسحابة الآن، يعمل التطبيق مؤقتًا ببياناته المحفوظة');
+      }
+      startCloudListener(user.uid);
+
+      const unlockState = getOwnerUnlockState(user.uid);
+      if(isFreshSignup || unlockState==='owner'){
+        isOwnerMode = true;
+        setOwnerUnlockState(user.uid, 'owner');
+        ownerGateNeeded = false;
+      } else if(unlockState==='staff'){
+        isOwnerMode = false;
+        ownerGateNeeded = false;
+      } else {
+        ownerGateNeeded = true;
+        isOwnerMode = false;
+      }
+      pendingSignupOwnerPin = null;
+
+      if(!ownerGateNeeded) goToInitialScreen();
+    } else {
+      stopCloudListener();
+      isOwnerMode = false;
+      ownerGateNeeded = false;
+    }
+    render();
+  });
+}
+
+// Safety net: if Firebase never responds (blocked CDN, dead network, slow connection),
+// don't leave the person staring at "جاري التحقق من الحساب..." forever.
+setTimeout(()=>{
+  if(!authReady){
+    authReady = true;
+    render();
+  }
+}, 7000);
+
+// When connectivity returns, make sure nothing is left un-synced.
+window.addEventListener('online', ()=>{
+  if(!cloudDb || typeof firebase==='undefined'){
+    // Firebase never loaded at all (was offline on cold start) — reloading now that
+    // we're back online will fetch it fresh and pick up right where local data left off.
+    location.reload();
+    return;
+  }
+  if(authUser){
+    if(!unsubscribeSnapshot) startCloudListener(authUser.uid);
+    pushToCloud();
+  }
+});
+
+if(NOTIF.enabled && 'Notification' in window && Notification.permission==='default'){
+  Notification.requestPermission();
+}
+setTimeout(checkReminders, 3000);
+setInterval(checkReminders, 30000);
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
